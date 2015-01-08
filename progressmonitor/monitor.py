@@ -11,6 +11,7 @@ __version__ = 'dev'
 
 import time
 import math
+from string import Formatter
 
 # ============================== TASK ============================== #
 class Task(object):
@@ -269,16 +270,6 @@ def span_notify_rule(span=1):
     return lambda task: (False if task.progress() == 0 else 
                                 (task.progress() % span == 0))
 
-def rate_notify_rule(rate, length):
-    last_update = [0]
-    def rate_update(task):
-        progress = task.progress()
-        delta = (float(progress - last_update[0])/length)
-        if delta >= rate:
-            last_update[0] = progress
-            return True
-        return False
-    return rate_update
 
 def periodic_notify_rule(frequency):
     last_update=[time.time()]
@@ -291,13 +282,30 @@ def periodic_notify_rule(frequency):
     return periodic_update
 
 
+def rate_notify_rule(rate, length):
+    last_update = [0]
+    def rate_update(task):
+        progress = task.progress()
+        delta = (float(progress - last_update[0])/length)
+        if delta >= rate:
+            last_update[0] = progress
+            return True
+        return False
+    return rate_update
+
+
+def rate_rule_and_nb_notifs(rate, length):
+    nb_notifs = int(math.ceil(1./rate))
+    return rate_notify_rule(rate, length), nb_notifs
+
+
 
 
 
 
 # ============================ PROGRESS MONITOR ============================ #
 
-def custom_monitor_progress(generator, hook, name=None, 
+def monitor_progress(generator, hook, name=None, 
                             should_notify=always_notify_rule):
 
     """
@@ -325,112 +333,39 @@ def custom_monitor_progress(generator, hook, name=None,
     length = None
     try:
         length = len(generator)
-    finally:
-        # Creating the task
-        try:
-            task = ProgressableTask(length, name)
-            task.start()
-            progress = 0
-            # Log the start of the task
-            hook(task)
-            # Running the decorated generator
-            
-            for elem in generator:
-                # log the iterations of the task
-                if not task.update(progress):
-                    # Task is still in progress
-                    # Notifiyng the message if necessary
-                    if should_notify(task):
-                        hook(task)
-                # Yield the element
-                yield elem
-                # Increment the progress
-                progress += 1
-            # Ends the task
-            task.close(True)
-            # Notify last progress
-            hook(task)
-        except Exception as excep:
-            # Ends the task
-            task.close(False)
-            # Notify last progress
-            hook(task, excep)
-            raise
+    except (AttributeError, TypeError):
+        pass
 
-
-def monitor_progress(generator, hook, name=None, 
-                     notification_rate=0.01, notification_span=10,
-                     notification_period=60.):
-    """
-    Generator decorator for monitoring progress on another generator.
-
-    Parameters
-    ----------
-    generator : Generator
-        The generator to monitor
-    hook : callable (:class:`Task`, [exception])
-        A hook on which to register progress. It must have
-        - one mandatory argument which is a :class:`Task`instance
-        - one optional argument which is an exception istance in
-        case an error occured
-    name : str or None (Default : None)
-        The  name of the task. If None, a default name will be provided
-    notification_rate : float (Default : 0.01)
-        The rate at which the observer must be notified through the hook,
-        expressed relatively to the number of iterations 
-        (see `Notification recurrence`)
-        For instance, a rate of 0.1 for a generator of 100 elements 
-        means that the observer is notified every 10 iterations. 
-        Note:
-            - Set 0 to notified at each iteration
-            - Cannot be used for generator with no :meth:`__len__` method
-    notification_span: int (Default : 10)
-        The number of iterations before notifying the observer (see
-        `Notification recurrence`)
-        For instance, a span of 10 means that the observer is notified every
-        10 iterations
-    notification_period : float (Default : 60.)
-        The period at which the observer must be notified through the hook,
-        expressed in second (see `Notification recurrence`)
-        For instance, with a frequency of 5, the observer will have at 
-        least 5 seconds between two consecutive calls of :func:`hook`.
-        Note:
-            - This indicates the minimum time between two calls
-
-
-    Notification recurrence
-    -----------------------
-    The recurrence of notifications can be specified through three parameters:
-        1. notification_rate : based on the ratio iteration/nb_interation
-        2. notification_span : based on the number of iterations since the last 
-        notification
-        3. notification_period : based on the time since the last notification
-    The actual recurrence mechanism follows this sequence: 
-        - if notification_rate is set, it is used for generators with length 
-        attribute (the two other are ignored)
-        - elif notification_span is set,  is used and notification_period is i
-        gnored
-        - else notification_period is used
-    One and only one mechanism is used for a given task
-
-    Warning
-    -------
-    Needless to say that this function produces overhead. Use it with care.
-    """
-    length = None
+    # Creating the task
     try:
-        length = len(generator)
-    finally:
-        # Notification mechanism
-        if length is not None and notification_rate is not None:
-            should_notify = rate_notify_rule(notification_rate, length)
-        elif notification_span is not None:
-            should_notify = span_notify_rule(notification_span)
-        else:
-            should_notify = periodic_notify_rule(notification_period)
-        return custom_monitor_progress(generator, hook, name, should_notify)
-            
-
+        task = ProgressableTask(length, name)
+        task.start()
+        progress = 0
+        # Log the start of the task
+        hook(task)
+        # Running the decorated generator
+        
+        for elem in generator:
+            # log the iterations of the task
+            if not task.update(progress):
+                # Task is still in progress
+                # Notifiyng the message if necessary
+                if should_notify(task):
+                    hook(task)
+            # Yield the element
+            yield elem
+            # Increment the progress
+            progress += 1
+        # Ends the task
+        task.close(True)
+        # Notify last progress
+        hook(task)
+    except Exception as excep:
+        # Ends the task
+        task.close(False)
+        # Notify last progress
+        hook(task, excep)
+        raise
 
 
 
@@ -524,16 +459,6 @@ def format_size(nb_bytes):
 
 # ============================== FORMATING HOOK ============================== #
 
-def format_factory(callback, *formaters):
-
-    def hook(task, exception=None):
-        msg = ""
-        for formater in formaters:
-            msg = msg + formater(task, exception) + " "
-        callback(msg[:-1])
-
-    return hook
-
 
 def format_task(task, exception=None):
     return "Task # "+str(task.id())+": "+task.name()
@@ -543,7 +468,7 @@ def format_iteration(task, exception=None):
     nb_steps = task.nb_steps()
     if nb_steps is None:
         nb_steps = "???"
-    return task.progress() + "/" + nb_steps
+    return str(task.progress()) + "/" + str(nb_steps)
 
 def chunk_formater(chunk_size, total_size=None):
     total_size_str = ["???"]
@@ -641,12 +566,12 @@ def remaining_time_formater(length, decay_rate=0.1,
                 avg_speed = decay_rate*current_speed + (1-decay_rate)*avg_speed
                 remaining_time = (length-progress)/avg_speed
                 rem_t_str = format_duration(remaining_time, subsec_precision)
-                msg += "remaining time: " + rem_t_str
+                msg += "remaining time (estimation): " + rem_t_str
                 state["average_speed"] = avg_speed
                 if total_time:
                     total_duration = remaining_time+duration
                     to_t_str = format_duration(total_duration, subsec_precision)
-                    msg += " total time: " + to_t_str
+                    msg += " total time (estimation): " + to_t_str
 
         return msg
 
@@ -658,15 +583,15 @@ def remaining_time_formater(length, decay_rate=0.1,
 
 
 def add_(format1):
+    """
+    Decorator which combines two formater
+    """
     return lambda format2: lambda task, exception=None: format1(task, exception)+" "+format2(task, exception)
 
 
 
-def rate_format_factory(generator, callback, rate, decay_rate, *args, **kwargs):
-    # Computing needed data
-    length = len(generator)
-    nb_notifs = int(math.ceil(1./rate))
-    print "nb_notifs: ", nb_notifs  #TODO remove
+def rate_format_factory(callback, length, nb_notifs, 
+                        decay_rate, *args, **kwargs):
 
     # Establishing formating process
     @add_(format_task)
@@ -685,11 +610,8 @@ def rate_format_factory(generator, callback, rate, decay_rate, *args, **kwargs):
     return hook
 
 
-def rate_chunk_format_factory(generator, callback, chunk_size, total_size, 
-                              rate, decay_rate, *args, **kwargs):
-    # Computing needed data
-    length = len(generator)
-    nb_notifs = int(math.ceil(1./rate))
+def rate_chunk_format_factory(callback, length, nb_notifs, chunk_size, 
+                              total_size, decay_rate, *args, **kwargs):
 
     # Establishing formating process
     @add_(format_task)
@@ -724,6 +646,23 @@ def span_chunk_format_factory(callback, chunk_size, total_size, *args, **kwargs)
         callback(format_fallback(task, exception), last_com)
 
     return hook
+
+def format_from_string(callback, format_str, func_mapper):
+
+    def hook(task, exception=None):
+        last_com = task.is_completed() or exception is not None
+        val_dict = dict()
+        for name, function in func_mapper.iteritems():
+            val_dict[name] = function(task, exception)
+        callback(format_str.format(**val_dict), last_com)
+
+    return hook
+
+
+
+
+
+
 
 
 

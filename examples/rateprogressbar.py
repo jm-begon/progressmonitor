@@ -47,7 +47,7 @@ class BrokenGenerator:
 
 
 if __name__ == '__main__':
-    length = 100
+    length = 111
     rate = 0.1
 
     print "Exceptionless example"
