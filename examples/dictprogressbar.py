@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 #! /usr/bin/env python
 """
-Custom progress bar
+Custom progress bar configured from dictionary
 """
 
 from __future__ import generators
@@ -12,7 +12,7 @@ __version__ = 'dev'
 
 import time
 
-from progressmonitor.progressbar import progressbar
+from progressmonitor.factory import get_monitor, dict_config
 
 
 def lrange(n):
@@ -28,18 +28,46 @@ def do_task():
 
 if __name__ == '__main__':
     length = 102
+
     rate = 0.1
     span=10
     decay_rate = 0.1
 
-
     format_str = "{thread} {task} {progressbar} {time} {exception}"
+    format_str2= "Process {pid}: {task} [{iteration}] -- {elapsed} {exception}"
+    
+    config = {
+        "version": 1,
+        "notification_rules": {
+
+        },
+        "hooks": {
+
+        },
+        "monitors": {
+            "lengthy": {
+                "format_str": format_str,
+                "rate": rate,
+                "span": span,
+                "decay_rate":decay_rate,
+                "blank": " " 
+            },
+            "unlengthy": {
+                "format_str": format_str2,
+                "rate": None,
+                "span": span,
+                "decay_rate": decay_rate
+            }
+        }
+    }
+
+    dict_config(config)
+    
 
     print "With length example"
     print "---------------------"
     generator_ = xrange(length)
-    for _ in progressbar(generator_, format_str, rate, span, 
-                         decay_rate=decay_rate, blank=" "):
+    for _ in get_monitor("lengthy")(generator_):
         do_task()
 
     print
@@ -50,8 +78,7 @@ if __name__ == '__main__':
     print "Fallback example (without length)"
     print "---------------------"
     generator_ = lrange(length)
-    for _ in progressbar(generator_, format_str, rate=None, span=span, 
-                         decay_rate=decay_rate, blank=" "):
+    for _ in get_monitor("lengthy")(generator_):
         do_task()
 
     print
@@ -61,8 +88,6 @@ if __name__ == '__main__':
 
     print "Without length example"
     print "---------------------"
-    format_str = "Process {pid}: {task} [{iteration}] -- {elapsed} {exception}"
     generator_ = lrange(length)
-    for _ in progressbar(generator_, format_str, rate=None, span=span, 
-                         decay_rate=decay_rate, blank=" "):
+    for _ in get_monitor("unlengthy")(generator_):
         do_task()

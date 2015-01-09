@@ -7,11 +7,11 @@ from __future__ import generators
 __author__ = "Begon Jean-Michel <jm.begon@gmail.com>"
 __copyright__ = "3-clause BSD License"
 __version__ = 'dev'
+__date__ = "08 January 2015"
 
 
 import time
 import math
-from string import Formatter
 
 # ============================== TASK ============================== #
 class Task(object):
@@ -306,7 +306,7 @@ def rate_rule_and_nb_notifs(rate, length):
 # ============================ PROGRESS MONITOR ============================ #
 
 def monitor_progress(generator, hook, name=None, 
-                            should_notify=always_notify_rule):
+                     should_notify=always_notify_rule):
 
     """
     Generator decorator for monitoring progress on another generator.
@@ -463,6 +463,17 @@ def format_size(nb_bytes):
 def format_task(task, exception=None):
     return "Task # "+str(task.id())+": "+task.name()
 
+def format_thread(task, exception=None):
+    try:
+        from threading import current_thread
+    except ImportError:
+        from threading import currentThread as current_thread
+    thread = current_thread()
+    return "Thread '" + thread.getName() + "' (id="+str(thread.ident)+")"
+
+def format_process(task, exception=None):
+    import os
+    return str(os.getpid())
 
 def format_iteration(task, exception=None):
     nb_steps = task.nb_steps()

@@ -20,6 +20,7 @@ from __future__ import generators
 __author__ = "Begon Jean-Michel <jm.begon@gmail.com>"
 __copyright__ = "3-clause BSD License"
 __version__ = 'dev'
+__date__ = "08 January 2015"
 
 import sys
 from functools import partial
@@ -31,7 +32,8 @@ from .monitor import (monitor_progress, format_duration, rate_format_factory,
                       periodic_notify_rule, progressbar_formater, format_task, 
                       elapsed_time_formater, remaining_time_formater, 
                       exception_handler_formater, format_iteration, 
-                      chunk_formater, format_from_string)
+                      chunk_formater, format_from_string, format_thread,
+                      format_process)
 
 # ============================ HELPERS ============================ #
 def overwrite_callback(stream=sys.stdout):
@@ -181,6 +183,25 @@ def chunck_progressbar(generator, chunk_size, total_size=None,
                    should_notify=rule)()
 
 
+class MonitorValueError(ValueError):
+
+    def __init__(self):
+        ValueError.__init__(self)
+        self.func = None
+
+    def add(self, msg):
+        self.message += msg + " "
+
+    def is_empty(self):
+        return self.message == ""
+
+    def attach_func(self, func):
+        self.func = func
+
+    def __str__(self):
+        return repr(self.value)
+
+
 def custom_progressbar(generator, 
                        format_str="{task} {progressbar} {time} {exception}",
                        rate=None,
@@ -189,6 +210,7 @@ def custom_progressbar(generator,
                        decay_rate=0.1,
                        chunk_size=8192, total_size=None,
                        callback=overwrite_callback(),
+                       other_dict={},
                        *args, **kwargs):
     """
     rate : float (Default : 0.01)
@@ -228,7 +250,17 @@ def custom_progressbar(generator,
         - else notification_period is used
     One and only one mechanism is used for a given task
     """
-    
+
+    print "-------------------"
+    print "Gen", generator
+    print "Format", format_str
+    print "Rate", rate
+    print "Span", span
+    print "Period", period
+    print "Decay", decay_rate 
+    print "-------------------" # TODO remove
+    # Creating a repository for errors
+    monitor_except = MonitorValueError()
 
     # Choosing the notification rule
     length = None
@@ -238,6 +270,7 @@ def custom_progressbar(generator,
         pass
 
     # Notification mechanism
+    nb_notifs = None
     if length is not None and rate is not None:
         rule, nb_notifs = rate_rule_and_nb_notifs(rate, length)
     elif span is not None:
@@ -258,18 +291,25 @@ def custom_progressbar(generator,
 
         elif format_rule == "progressbar":
             if nb_notifs is None:
-                raise ValueError("Rate is mandatory for 'progressbar' option. Rate also required the generator to have a length")
-            func_mapper["progressbar"] = progressbar_formater(nb_notifs, 
-                                                              *args, **kwargs)
+                monitor_except.add("Rate is mandatory for 'progressbar' option. Rate also required the generator to have a length")
+                # Fallback : iteration
+                func_mapper["progressbar"] = format_iteration
+            else:
+                func_mapper["progressbar"] = progressbar_formater(nb_notifs, 
+                                                                  *args, 
+                                                                  **kwargs)
         elif format_rule == "elapsed":
             func_mapper["elapsed"] = elapsed_time_formater(*args, **kwargs)
 
         elif format_rule == "time":
             if length is None:
-                raise ValueError("Length is mandatory for 'time' option")
-            func_mapper["time"] = remaining_time_formater(length, 
-                                                          decay_rate, 
-                                                          *args, **kwargs)
+                monitor_except.add("Length is mandatory for 'time' option")
+                # Fallback : elapsed time
+                func_mapper["time"] = elapsed_time_formater(*args, **kwargs)
+            else:
+                func_mapper["time"] = remaining_time_formater(length, 
+                                                              decay_rate, 
+                                                              *args, **kwargs)
         elif format_rule == "exception":
             func_mapper["exception"] = exception_handler_formater(*args, 
                                                                   **kwargs)
@@ -277,15 +317,42 @@ def custom_progressbar(generator,
             func_mapper["iteration"] = format_iteration
         elif format_rule == "chunk":
             func_mapper["chunk"] = chunk_formater(chunk_size, total_size)
+        elif format_rule == "thread":
+            func_mapper["thread"] = format_thread
+        elif format_rule == "pid":
+            func_mapper["pid"] = format_process
         elif format_rule is None:
             pass
+        elif format_rule in other_dict:
+            func_mapper[format_rule] = other_dict[format_rule](*args, **kwargs)
         else:
-            raise ValueError("formatting rule '"+format_rule+"' not supported")
+            # No fallback
+            monitor_except.add("formatting rule '"+format_rule+"' not supported")
 
     # Building the hook
     hook = format_from_string(callback, format_str, func_mapper)
 
-    return partial(monitor_progress, generator=generator, hook=hook, 
-                   should_notify=rule)()
+    monitor = partial(monitor_progress, generator=generator, hook=hook, 
+                      should_notify=rule)()
+
+    if not monitor_except.is_empty():
+        monitor_except.attach_func(monitor)
+        raise monitor_except
+
+    return monitor
+
+
+def progressbar(generator, *args, **kwargs):
+
+    try:
+        monitor = custom_progressbar(generator, *args, **kwargs)
+    except MonitorValueError as exception:
+        monitor = exception.func
+
+    return monitor
+
+def monitor(*args, **kwargs):
+    return lambda generator: progressbar(generator, *args, **kwargs)
+
 
 

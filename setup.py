@@ -6,6 +6,7 @@ setup script
 __author__ = "Begon Jean-Michel <jm.begon@gmail.com>"
 __copyright__ = "3-clause BSD License"
 __version__ = 'dev'
+__date__ = "08 January 2015"
 
 from distutils.core import setup
 
