@@ -12,7 +12,7 @@ __version__ = 'dev'
 
 import time
 
-from progressmonitor.factory import get_monitor, dict_config
+from progressmonitor.config import get_monitor, dict_config
 
 
 def lrange(n):
@@ -38,21 +38,17 @@ if __name__ == '__main__':
     
     config = {
         "version": 1,
-        "notification_rules": {
-
-        },
-        "hooks": {
-
-        },
         "monitors": {
             "lengthy": {
                 "format_str": format_str,
                 "rate": rate,
                 "span": span,
                 "decay_rate":decay_rate,
-                "blank": " " 
+                "blank": " ", 
+                "callback": "stderr"
             },
             "unlengthy": {
+                "rule": "by_rate",
                 "format_str": format_str2,
                 "rate": None,
                 "span": span,

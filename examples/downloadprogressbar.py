@@ -21,7 +21,7 @@ except ImportError:
     from urllib.error import URLError, HTTPError
     from urllib.request import urlopen
 
-from progressmonitor.progressbar import chunck_progressbar
+from progressmonitor.factory import chunck_progressbar
 
 class Chunker:
 

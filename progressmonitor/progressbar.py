@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-Progress bars for sys.stdout
+Lightweight progress bars for sys.stdout
 
 
 Other progress bar libraries should be fairly easy to plug in. Have a look at:
@@ -23,36 +23,15 @@ __version__ = 'dev'
 __date__ = "08 January 2015"
 
 import sys
+import math
 from functools import partial
-from string import Formatter
 
-from .monitor import (monitor_progress, format_duration, rate_format_factory, 
-                      span_chunk_format_factory, rate_chunk_format_factory,
-                      span_notify_rule, rate_rule_and_nb_notifs, 
-                      periodic_notify_rule, progressbar_formater, format_task, 
-                      elapsed_time_formater, remaining_time_formater, 
-                      exception_handler_formater, format_iteration, 
-                      chunk_formater, format_from_string, format_thread,
-                      format_process)
+from .util import format_duration
+from .monitor import monitor_progress
+from .notifrules import rate_rule_factory, span_rule_factory
 
-# ============================ HELPERS ============================ #
-def overwrite_callback(stream=sys.stdout):
-    string_length = [0]
 
-    def overwrite(string, last_com=False):
-        stream.write("\b"*string_length[0])
-        stream.write(string)
-        new_length = len(string)
-        length_diff = string_length[0] - new_length
-        if length_diff > 0:
-            stream.write(" "*length_diff)
-            stream.write("\b"*length_diff)
-        string_length[0] = new_length
-        if last_com:
-            stream.write("\n")
-        stream.flush()
 
-    return overwrite
 
 
 class Printer(object):
@@ -108,19 +87,20 @@ def span_progressbar(generator, span, printer=Printer()):
 
 
     return partial(monitor_progress, generator=generator, hook=hook, 
-                   should_notify=span_notify_rule(span))()
+                   should_notify=span_rule_factory(span))()
 
 
 def rate_progressbar(generator, rate, printer=Printer(),
                      fill=".", blank=" ", error="x"):
     length = len(generator)
-    rule, nb_iter = rate_rule_and_nb_notifs(rate, length)
+    rule = rate_rule_factory(rate, length)
+    nb_notifs = int(math.ceil(1./rate))
 
     def hook(task, exception=None):
         if task.progress() == 0:
             # Setting up
-            printer.write("Processing [", blank*nb_iter, "]")
-            printer.move_left(nb_iter+1)
+            printer.write("Processing [", blank*nb_notifs, "]")
+            printer.move_left(nb_notifs+1)
         else:
             if exception is not None:
                 # Task aborted
@@ -137,222 +117,5 @@ def rate_progressbar(generator, rate, printer=Printer(),
 
     return partial(monitor_progress, generator=generator, hook=hook, 
                    should_notify=rule)()
-
-
-# =========================== PROGRESSBAR FACTORY ============================ #
-
-def remain_time_progressbar(generator, rate, decay_rate=0.1, 
-                            callback=overwrite_callback(), *args, **kwargs):
-
-    length = len(generator)
-
-    rule, nb_notifs = rate_rule_and_nb_notifs(rate, length)
-
-    hook = rate_format_factory(callback, length, nb_notifs, decay_rate, 
-                               *args, **kwargs)
-
-    return partial(monitor_progress, generator=generator, hook=hook, 
-                   should_notify=rule)()
-
-def chunck_progressbar(generator, chunk_size, total_size=None, 
-                       rate=0.1, span=10, decay_rate=0.1, 
-                       callback=overwrite_callback(), *args, **kwargs):
-
-    try:
-        length = len(generator)
-        rule, nb_notifs = rate_rule_and_nb_notifs(rate, length)
-
-        hook = rate_chunk_format_factory(callback,
-                                         length,
-                                         nb_notifs,
-                                         chunk_size,
-                                         total_size,
-                                         decay_rate,
-                                         *args,
-                                         **kwargs)
-
-        
-
-    except (AttributeError, TypeError):
-
-        hook = span_chunk_format_factory(callback, chunk_size, total_size,
-                                         *args, **kwargs)
-        rule = span_notify_rule(span)
-
-    return partial(monitor_progress, generator=generator, hook=hook, 
-                   should_notify=rule)()
-
-
-class MonitorValueError(ValueError):
-
-    def __init__(self):
-        ValueError.__init__(self)
-        self.func = None
-
-    def add(self, msg):
-        self.message += msg + " "
-
-    def is_empty(self):
-        return self.message == ""
-
-    def attach_func(self, func):
-        self.func = func
-
-    def __str__(self):
-        return repr(self.value)
-
-
-def custom_progressbar(generator, 
-                       format_str="{task} {progressbar} {time} {exception}",
-                       rate=None,
-                       span=None,
-                       period=5,
-                       decay_rate=0.1,
-                       chunk_size=8192, total_size=None,
-                       callback=overwrite_callback(),
-                       other_dict={},
-                       *args, **kwargs):
-    """
-    rate : float (Default : 0.01)
-        The rate at which the observer must be notified through the hook,
-        expressed relatively to the number of iterations 
-        (see `Notification recurrence`)
-        For instance, a rate of 0.1 for a generator of 100 elements 
-        means that the observer is notified every 10 iterations. 
-        Note:
-            - Set 0 to notified at each iteration
-            - Cannot be used for generator with no :meth:`__len__` method
-    span: int (Default : 10)
-        The number of iterations before notifying the observer (see
-        `Notification recurrence`)
-        For instance, a span of 10 means that the observer is notified every
-        10 iterations
-    period : float (Default : 60.)
-        The period at which the observer must be notified through the hook,
-        expressed in second (see `Notification recurrence`)
-        For instance, with a frequency of 5, the observer will have at 
-        least 5 seconds between two consecutive calls of :func:`hook`.
-        Note:
-            - This indicates the minimum time between two calls
-
-    Notification recurrence
-    -----------------------
-    The recurrence of notifications can be specified through three parameters:
-        1. notification_rate : based on the ratio iteration/nb_interation
-        2. notification_span : based on the number of iterations since the last 
-        notification
-        3. notification_period : based on the time since the last notification
-    The actual recurrence mechanism follows this sequence: 
-        - if notification_rate is set, it is used for generators with length 
-        attribute (the two other are ignored)
-        - elif notification_span is set,  is used and notification_period is i
-        gnored
-        - else notification_period is used
-    One and only one mechanism is used for a given task
-    """
-
-    print "-------------------"
-    print "Gen", generator
-    print "Format", format_str
-    print "Rate", rate
-    print "Span", span
-    print "Period", period
-    print "Decay", decay_rate 
-    print "-------------------" # TODO remove
-    # Creating a repository for errors
-    monitor_except = MonitorValueError()
-
-    # Choosing the notification rule
-    length = None
-    try:
-        length = len(generator)
-    except (AttributeError, TypeError):
-        pass
-
-    # Notification mechanism
-    nb_notifs = None
-    if length is not None and rate is not None:
-        rule, nb_notifs = rate_rule_and_nb_notifs(rate, length)
-    elif span is not None:
-        rule = span_notify_rule(span)
-    else:
-        rule = periodic_notify_rule(period)
-
-    
-
-    # Parsing format_str to get the sequence of formater
-    formatters = Formatter()
-    func_mapper = dict()
-
-    for format_rule_tuple in formatters.parse(format_str):
-        format_rule = format_rule_tuple[1]
-        if format_rule == "task":
-            func_mapper["task"] = format_task
-
-        elif format_rule == "progressbar":
-            if nb_notifs is None:
-                monitor_except.add("Rate is mandatory for 'progressbar' option. Rate also required the generator to have a length")
-                # Fallback : iteration
-                func_mapper["progressbar"] = format_iteration
-            else:
-                func_mapper["progressbar"] = progressbar_formater(nb_notifs, 
-                                                                  *args, 
-                                                                  **kwargs)
-        elif format_rule == "elapsed":
-            func_mapper["elapsed"] = elapsed_time_formater(*args, **kwargs)
-
-        elif format_rule == "time":
-            if length is None:
-                monitor_except.add("Length is mandatory for 'time' option")
-                # Fallback : elapsed time
-                func_mapper["time"] = elapsed_time_formater(*args, **kwargs)
-            else:
-                func_mapper["time"] = remaining_time_formater(length, 
-                                                              decay_rate, 
-                                                              *args, **kwargs)
-        elif format_rule == "exception":
-            func_mapper["exception"] = exception_handler_formater(*args, 
-                                                                  **kwargs)
-        elif format_rule == "iteration":
-            func_mapper["iteration"] = format_iteration
-        elif format_rule == "chunk":
-            func_mapper["chunk"] = chunk_formater(chunk_size, total_size)
-        elif format_rule == "thread":
-            func_mapper["thread"] = format_thread
-        elif format_rule == "pid":
-            func_mapper["pid"] = format_process
-        elif format_rule is None:
-            pass
-        elif format_rule in other_dict:
-            func_mapper[format_rule] = other_dict[format_rule](*args, **kwargs)
-        else:
-            # No fallback
-            monitor_except.add("formatting rule '"+format_rule+"' not supported")
-
-    # Building the hook
-    hook = format_from_string(callback, format_str, func_mapper)
-
-    monitor = partial(monitor_progress, generator=generator, hook=hook, 
-                      should_notify=rule)()
-
-    if not monitor_except.is_empty():
-        monitor_except.attach_func(monitor)
-        raise monitor_except
-
-    return monitor
-
-
-def progressbar(generator, *args, **kwargs):
-
-    try:
-        monitor = custom_progressbar(generator, *args, **kwargs)
-    except MonitorValueError as exception:
-        monitor = exception.func
-
-    return monitor
-
-def monitor(*args, **kwargs):
-    return lambda generator: progressbar(generator, *args, **kwargs)
-
 
 

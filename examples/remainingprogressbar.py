@@ -12,7 +12,7 @@ __version__ = 'dev'
 
 import time
 
-from progressmonitor.progressbar import remain_time_progressbar
+from progressmonitor.factory import remain_time_progressbar
 
 def do_task():
     """Task simulator"""

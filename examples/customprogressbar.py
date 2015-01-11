@@ -12,7 +12,7 @@ __version__ = 'dev'
 
 import time
 
-from progressmonitor.progressbar import progressbar
+from progressmonitor.factory import default_monitoring
 
 
 def lrange(n):
@@ -33,13 +33,13 @@ if __name__ == '__main__':
     decay_rate = 0.1
 
 
-    format_str = "{thread} {task} {progressbar} {time} {exception}"
+    format_str = "{task} {progressbar} {time} {exception}"
 
     print "With length example"
     print "---------------------"
     generator_ = xrange(length)
-    for _ in progressbar(generator_, format_str, rate, span, 
-                         decay_rate=decay_rate, blank=" "):
+    for _ in default_monitoring(generator_, format_str, rate, span, 
+                                decay_rate=decay_rate, blank=" "):
         do_task()
 
     print
@@ -50,8 +50,8 @@ if __name__ == '__main__':
     print "Fallback example (without length)"
     print "---------------------"
     generator_ = lrange(length)
-    for _ in progressbar(generator_, format_str, rate=None, span=span, 
-                         decay_rate=decay_rate, blank=" "):
+    for _ in default_monitoring(generator_, format_str, rate=None, span=span, 
+                                decay_rate=decay_rate, blank=" "):
         do_task()
 
     print
@@ -63,6 +63,6 @@ if __name__ == '__main__':
     print "---------------------"
     format_str = "Process {pid}: {task} [{iteration}] -- {elapsed} {exception}"
     generator_ = lrange(length)
-    for _ in progressbar(generator_, format_str, rate=None, span=span, 
-                         decay_rate=decay_rate, blank=" "):
+    for _ in default_monitoring(generator_, format_str, rate=None, span=span, 
+                                decay_rate=decay_rate, blank=" "):
         do_task()

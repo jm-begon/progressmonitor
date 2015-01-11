@@ -8,65 +8,148 @@ __copyright__ = "3-clause BSD License"
 __version__ = 'dev'
 __date__ = "08 January 2015"
 
+import sys
 from functools import partial
-from ast import literal_eval
+from string import Formatter
 
-from .progressbar import monitor as monitor_factory
-
-class Manager(object):
-
-    _singleton = None
-
-    def __new__(cls, *args, **kwargs):
-        if cls._singleton is None:
-            cls._singleton = super(Manager, cls).__new__(cls, *args, **kwargs)
-            cls._singleton._monitors = dict()
-        return cls._singleton
-
-
-    def get_monitor(self, name, *args, **kwargs):
-        monitor = self._monitors.get(name, None)
-        if monitor is None:
-            print "Monitor", name, id(self), #TODO remove
-            print self._monitors #TODO remove
-            monitor = monitor_factory(*args, **kwargs)
-            self._monitors[name] = monitor
-            print self._monitors #TODO remove
-        return monitor
-
-def get_monitor(name, *args, **kwargs):
-    return Manager().get_monitor(name, *args, **kwargs) 
-
-
-def dict_config_v1(config_dict):
-    notif_rules_str = "notification_rules"
-    hook_str = "hooks"
-    monitor_str = "monitors"
-    # Loading the notifiction rules
-    if notif_rules_str in config_dict:
-        rules_dict = config_dict[notif_rules_str]
-        # TODO
-    # Loading the hooks
-    if hook_str in config_dict:
-        hook_dict = config_dict[hook_str]
-        # TODO
-    # Getting the monitors
-    if monitor_str in config_dict:
-        monitor_dict = config_dict[monitor_str]
-        for name, conf in monitor_dict.iteritems():
-            get_monitor(name, **conf)
+from .util import call_with
+from .notifrules import (rate_rule_factory, span_rule_factory, 
+                         periodic_rule_factory)
+from .monitor import monitor_progress
+from .hook import (fullbar_hook_factory, chunkbar_hook_factory, 
+                   iterchunk_hook_factory, formated_hook_factory,
+                   __hook_factories__)
+from .callback import overwrite_callback_factory
 
 
 
-def dict_config(config_dict):
-    version = config_dict.get("version", 1)
-    if version == 1:
-        dict_config_v1(config_dict)
-    else:
-        raise AttributeError("Version "+str(version)+" is not supported")
+
+# ====================== (PSEUDO) PROGRESSBAR FACTORY ======================= #
+
+def remain_time_progressbar(generator, rate, decay_rate=0.1, 
+                            callback=overwrite_callback_factory(), 
+                            *args, **kwargs):
+
+    length = len(generator)
+
+    rule = rate_rule_factory(rate, length)
 
 
-def file_config(config_file):
-    with open(config_file) as fp:
-        config_dict = literal_eval(fp.read())
-    dict_config(config_dict)
+    hook = fullbar_hook_factory(callback, length, rate, decay_rate, 
+                                *args, **kwargs)
+
+    return partial(monitor_progress, generator=generator, hook=hook, 
+                   should_notify=rule)()
+
+def chunck_progressbar(generator, chunk_size, total_size=None, 
+                       rate=0.1, span=10, decay_rate=0.1, 
+                       callback=overwrite_callback_factory(), 
+                        *args, **kwargs):
+
+    try:
+        length = len(generator)
+        
+        rule = rate_rule_factory(rate, length)
+
+        hook = chunkbar_hook_factory(callback, length, rate,
+                                     chunk_size, total_size, decay_rate,
+                                     *args, **kwargs)
+
+        
+
+    except (AttributeError, TypeError):
+
+        hook = iterchunk_hook_factory(callback, chunk_size, total_size,
+                                      *args, **kwargs)
+        rule = span_rule_factory(span)
+
+    return partial(monitor_progress, generator=generator, hook=hook, 
+                   should_notify=rule)()
+
+
+
+# =========================== MONITORING FACTORY ============================ #
+
+def formated_monitoring(generator, 
+                        format_str="{task} {progressbar} {time} {exception}",
+                        hook_factories=__hook_factories__,
+                        rule_factory=rate_rule_factory,
+                        callback_factory=overwrite_callback_factory, 
+                        **kwargs):
+    
+    # ---- Adding the format string ---- #
+    kwargs["format_str"] = format_str
+
+    # ---- Testing for length ---- #
+    length = None
+    try:
+        length = len(generator)
+        kwargs["length"] = length
+    except (AttributeError, TypeError):
+        pass
+
+    # ---- Choosing the rule ---- #
+    rule = call_with(rule_factory, kwargs)
+
+    # ---- Building the callback ---- #
+    callback = call_with(callback_factory, kwargs)
+
+    # ---- Building the format_mapper ---- #
+    format_mapper = dict()
+    formatters = Formatter()
+    for _, p_holder, _, _ in formatters.parse(format_str):
+        function = hook_factories[p_holder]
+        format_mapper[p_holder] = call_with(function, kwargs)
+
+
+    # ---- Building the final hook ---- #
+
+    hook = formated_hook_factory(callback, format_str, format_mapper)
+
+    return partial(monitor_progress, generator=generator, hook=hook, 
+                   should_notify=rule)()
+
+
+
+def default_monitoring(generator, 
+                       format_str="{task} {progressbar} {time} {exception}",
+                       rate=0.1, span=10, period=5,
+                       hook_factories=__hook_factories__,
+                       callback_factory=overwrite_callback_factory,
+                       **kwargs):
+
+    # Choosing the notification rule
+    if rate is not None:
+        rule_factory = rate_rule_factory
+        kwargs["rate"] = rate
+    if span is not None:
+        kwargs["span"] = span
+        if rate is None:
+            rule_factory = span_rule_factory
+    if period is not None:
+        kwargs["period"] = period
+        if rate is None and span is None:
+            rule_factory = periodic_rule_factory
+    if rate is None and span is None and period is None:
+        raise AttributeError("One of {rate, span, period} must be set")
+
+    return formated_monitoring(generator=generator,
+                               format_str=format_str,
+                               hook_factories=hook_factories,
+                               rule_factory=rule_factory,
+                               callback_factory=callback_factory, 
+                               **kwargs)
+
+
+
+
+def monitor(**kwargs):
+
+    def embed(generator):
+        return formated_monitoring(generator=generator, **kwargs)
+    return embed
+
+
+
+
+
