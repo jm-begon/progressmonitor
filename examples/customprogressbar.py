@@ -33,7 +33,7 @@ if __name__ == '__main__':
     decay_rate = 0.1
 
 
-    format_str = "{task} {progressbar} {time} {exception}"
+    format_str = "{$task} {$progressbar} {$time} {$exception}"
 
     print "With length example"
     print "---------------------"
@@ -61,7 +61,7 @@ if __name__ == '__main__':
 
     print "Without length example"
     print "---------------------"
-    format_str = "Process {pid}: {task} [{iteration}] -- {elapsed} {exception}"
+    format_str = "Process {$pid}: {$task} [{$iteration}] -- {$elapsed} {$exception}"
     generator_ = lrange(length)
     for _ in default_monitoring(generator_, format_str, rate=None, span=span, 
                                 decay_rate=decay_rate, blank=" "):

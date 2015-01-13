@@ -8,14 +8,13 @@ __copyright__ = "3-clause BSD License"
 __version__ = 'dev'
 __date__ = "08 January 2015"
 
-import sys
 from functools import partial
 from string import Formatter
 
-from .util import call_with
+from .util import call_with, nb_notifs_from_rate
 from .notifrules import (rate_rule_factory, span_rule_factory, 
                          periodic_rule_factory)
-from .monitor import monitor_progress
+from .monitor import monitor_progress, monitor_function, monitor_code
 from .hook import (fullbar_hook_factory, chunkbar_hook_factory, 
                    iterchunk_hook_factory, formated_hook_factory,
                    __hook_factories__)
@@ -38,13 +37,16 @@ def remain_time_progressbar(generator, rate, decay_rate=0.1,
     hook = fullbar_hook_factory(callback, length, rate, decay_rate, 
                                 *args, **kwargs)
 
-    return partial(monitor_progress, generator=generator, hook=hook, 
-                   should_notify=rule)()
+    task_name = kwargs.get("task_name", None)
+
+    return monitor_progress(generator, hook, task_name, rule)
 
 def chunck_progressbar(generator, chunk_size, total_size=None, 
                        rate=0.1, span=10, decay_rate=0.1, 
                        callback=overwrite_callback_factory(), 
                         *args, **kwargs):
+
+    task_name = kwargs.get("task_name", None)
 
     try:
         length = len(generator)
@@ -63,20 +65,19 @@ def chunck_progressbar(generator, chunk_size, total_size=None,
                                       *args, **kwargs)
         rule = span_rule_factory(span)
 
-    return partial(monitor_progress, generator=generator, hook=hook, 
-                   should_notify=rule)()
+    return monitor_progress(generator, hook, task_name, rule)
 
 
 
 # =========================== MONITORING FACTORY ============================ #
 
 def formated_monitoring(generator, 
-                        format_str="{task} {progressbar} {time} {exception}",
+                        format_str="{$task} {$progressbar} {$time} {$exception}",
                         hook_factories=__hook_factories__,
                         rule_factory=rate_rule_factory,
                         callback_factory=overwrite_callback_factory, 
                         **kwargs):
-    
+
     # ---- Adding the format string ---- #
     kwargs["format_str"] = format_str
 
@@ -85,6 +86,10 @@ def formated_monitoring(generator,
     try:
         length = len(generator)
         kwargs["length"] = length
+        if "rate" in kwargs:
+            nb_notifs = nb_notifs_from_rate(kwargs["rate"], length)
+            kwargs["nb_notifs"] = nb_notifs
+
     except (AttributeError, TypeError):
         pass
 
@@ -106,8 +111,10 @@ def formated_monitoring(generator,
 
     hook = formated_hook_factory(callback, format_str, format_mapper)
 
-    return partial(monitor_progress, generator=generator, hook=hook, 
-                   should_notify=rule)()
+    # ---- Naming the task ---- #
+    task_name = kwargs.get("task_name", None)
+
+    return monitor_progress(generator, hook, task_name, rule)
 
 
 
@@ -150,6 +157,76 @@ def monitor(**kwargs):
     return embed
 
 
+# ======================= FUNCTION MONITORING FACTORY ======================== #
 
+def formated_function_monitoring(function, 
+                                 format_str="{$fname} {$elapsed} {$exception}",
+                                 hook_factories=__hook_factories__,
+                                 callback_factory=overwrite_callback_factory, 
+                                 **kwargs):
+
+    # ---- Adding the format string ---- #
+    kwargs["format_str"] = format_str
+
+
+    # ---- Building the callback ---- #
+    callback = call_with(callback_factory, kwargs)
+
+    # ---- Building the format_mapper ---- #
+    format_mapper = dict()
+    formatters = Formatter()
+    for _, p_holder, _, _ in formatters.parse(format_str):
+        function_ = hook_factories[p_holder]
+        format_mapper[p_holder] = call_with(function_, kwargs)
+
+
+
+    # ---- Building the final hook ---- #
+
+    hook = formated_hook_factory(callback, format_str, format_mapper)
+
+    # ---- Naming the task ---- #
+    task_name = kwargs.get("task_name", None)
+
+    return partial(monitor_function, function, hook, task_name)
+
+
+def monitor_function_factory(**kwargs):
+    def embed_func(function):
+        return formated_function_monitoring(function=function, **kwargs)
+    return embed_func
+
+
+# ======================= CODE MONITORING FACTORY ======================== #
+
+def formated_code_monitoring(format_str="{$elapsed} {$exception}",
+                                 hook_factories=__hook_factories__,
+                                 callback_factory=overwrite_callback_factory, 
+                                 **kwargs):
+
+    # ---- Adding the format string ---- #
+    kwargs["format_str"] = format_str
+
+
+    # ---- Building the callback ---- #
+    callback = call_with(callback_factory, kwargs)
+
+    # ---- Building the format_mapper ---- #
+    format_mapper = dict()
+    formatters = Formatter()
+    for _, p_holder, _, _ in formatters.parse(format_str):
+        function_ = hook_factories[p_holder]
+        format_mapper[p_holder] = call_with(function_, kwargs)
+
+
+
+    # ---- Building the final hook ---- #
+
+    hook = formated_hook_factory(callback, format_str, format_mapper)
+
+    # ---- Naming the task ---- #
+    task_name = kwargs.get("task_name", None)
+
+    return monitor_code(hook, task_name)
 
 

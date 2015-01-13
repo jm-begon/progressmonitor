@@ -10,13 +10,13 @@ __date__ = "08 January 2015"
 
 
 import time
-import math
 import os
 try:
     from threading import current_thread
 except ImportError:
     from threading import currentThread as current_thread
-from .util import format_duration, format_size, fallback, call_with
+from .util import (format_duration, format_size, fallback, 
+                   call_with, nb_notifs_from_rate)
 
 
 
@@ -77,9 +77,8 @@ def exception_hook_factory(subsec_precision=2):
 
 
 @fallback(nb_iterations_hook_factory)
-def progressbar_hook_factory(rate, fill="=", blank=".",
+def progressbar_hook_factory(nb_notifs, fill="=", blank=".",
     format="[%(fill)s>%(blank)s] %(progress)s%%"):
-    nb_notifs = int(math.ceil(1./rate))
     state = [0]
     def progressbar_hook(task, exception=None):
         # Running or completed
@@ -196,9 +195,11 @@ def add_(factory, separator=" ", **kwargs):
 def fullbar_hook_factory(callback, length, rate, 
                          decay_rate, **kwargs):
 
+    nb_notifs = nb_notifs_from_rate(rate, length)
+
     # Establishing formating process
     @add_(taskname_hook_factory)
-    @add_(progressbar_hook_factory, rate=rate, **kwargs)
+    @add_(progressbar_hook_factory, nb_notifs=nb_notifs, **kwargs)
     @add_(remaining_time_hook_factory, length=length, decay_rate=decay_rate, 
           **kwargs)
     @add_(exception_hook_factory, **kwargs)
@@ -217,9 +218,11 @@ def fullbar_hook_factory(callback, length, rate,
 def chunkbar_hook_factory(callback, length, rate, chunk_size, 
                           total_size, decay_rate, **kwargs):
 
+    nb_notifs = nb_notifs_from_rate(rate, length)
+
     # Establishing formating process
     @add_(taskname_hook_factory)
-    @add_(progressbar_hook_factory, rate=rate, **kwargs)
+    @add_(progressbar_hook_factory, nb_notifs=nb_notifs, **kwargs)
     @add_(chunk_hook_factory, chunk_size=chunk_size, total_size=total_size)
     @add_(remaining_time_hook_factory, length=length, decay_rate=decay_rate,
           **kwargs)
@@ -253,15 +256,40 @@ def iterchunk_hook_factory(callback, chunk_size, total_size, **kwargs):
     return iterchunk_hook
 
 
+# ====================== FORMATING HOOK FOR FUNCTIONS ====================== #
+def func_str_hook_factory():
+    def func_str_hook(task, monitored_func, exception=None):
+        return str(monitored_func)
+    return func_str_hook
+
+
+def deblogger_hook_factory(multiline=False):
+    def deblogger_hook(task, monitored_func, monitored_args, monitored_kwargs, 
+                       exception=None):
+        if task.progress() == 0:
+            if multiline:
+                msg = "Called:\n function: %s\n args: %r\n kwargs:%r\n"
+                return msg % (str(monitored_func), monitored_args, 
+                              monitored_kwargs)
+            else:
+                return "%s (args: %r  kwargs:%r)" % (str(monitored_func), 
+                                                     monitored_args, 
+                                                     monitored_kwargs)
+        else:
+            return str(monitored_func)
+    return deblogger_hook
+
+
 # ========================= STRING FORMATING HOOK ========================= #
 
 def formated_hook_factory(callback, format_str, format_mapper):
 
-    def formated_hook(task, exception=None):
+    def formated_hook(task, exception=None, **kwargs):
         last_com = task.is_completed() or exception is not None
         val_dict = dict()
-        for name, function in format_mapper.iteritems():
-            val_dict[name] = function(task, exception)
+        for name, function_ in format_mapper.iteritems():
+            val_dict[name] = call_with(function_, kwargs, task, 
+                                       exception=exception)
         callback(format_str.format(**val_dict), last_com)
 
     return formated_hook
@@ -272,15 +300,17 @@ def formated_hook_factory(callback, format_str, format_mapper):
 
 
 __hook_factories__ = {
-    "task" : taskname_hook_factory,
-    "thread" : threadname_hook_factory,
-    "pid" : processid_hook_factory,
-    "iteration" : nb_iterations_hook_factory,
-    "completion" : completion_hook_factory,
-    "progressbar" : progressbar_hook_factory,
-    "elapsed" : elapsed_time_hook_factory,
-    "time" : remaining_time_hook_factory,
-    "exception" : exception_hook_factory,
-    "chunk" : chunk_hook_factory
+    "$task" : taskname_hook_factory,
+    "$thread" : threadname_hook_factory,
+    "$pid" : processid_hook_factory,
+    "$iteration" : nb_iterations_hook_factory,
+    "$completion" : completion_hook_factory,
+    "$progressbar" : progressbar_hook_factory,
+    "$elapsed" : elapsed_time_hook_factory,
+    "$time" : remaining_time_hook_factory,
+    "$exception" : exception_hook_factory,
+    "$chunk" : chunk_hook_factory,
+    "$fname": func_str_hook_factory,
+    "$deblogger": deblogger_hook_factory,
 }
 

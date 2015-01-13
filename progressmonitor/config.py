@@ -8,9 +8,11 @@ __copyright__ = "3-clause BSD License"
 __version__ = 'dev'
 __date__ = "08 January 2015"
 
+import re
 from ast import literal_eval
 
 from .factory import monitor as monitor_factory
+from .factory import monitor_function_factory, formated_code_monitoring
 from .hook import __hook_factories__
 from .notifrules import __rule_factories__
 from .callback import __callback_factories__
@@ -24,16 +26,31 @@ class Manager(object):
     def __new__(cls, *args, **kwargs):
         if cls._singleton is None:
             cls._singleton = super(Manager, cls).__new__(cls, *args, **kwargs)
-            cls._singleton._monitors = dict()
+            cls._singleton._confs = dict()
         return cls._singleton
 
-    def add_monitor(self, name, monitor):
-        self._monitors[name] = monitor
-        return monitor
+    def add_config(self, monitor_name, conf):
+        self._confs[monitor_name] = conf
+
+    def _get_ancestors_conf(self, monitor_name):
+        conf = dict()
+        prefixes = [monitor_name[:m.start()] 
+                    for m  in re.finditer('\.',monitor_name)]
+        prefixes.append(monitor_name)
+        for prefix in prefixes:
+            conf.update(self._confs.get(prefix, dict()))
+        return conf
 
 
-    def get_monitor(self, name):
-        return self._monitors[name]
+
+    def get_config(self, monitor_name, **kwargs):
+        conf = self._get_ancestors_conf(monitor_name)
+        if len(kwargs) > 0:
+            tmp = conf.copy()
+            tmp.update(kwargs)
+            conf = tmp
+        return conf
+
 
 
 
@@ -42,15 +59,10 @@ class Manager(object):
 class Const(object):
 
     VERSION = "version"
-    RULES_FACTORIES_SECTION = "notification_rules_factories"
-    HOOK_FACTORIES_SECTION = "hook_factories"
-    MONITORS_SECTION = "monitors"
-    RULE_TAG = "rule"
-    HOOK_TAG = "hook"
-    CALLBACK_TAG = "callback"
-    RULE_KW = "rule_factory"
-    HOOK_KW = "hook_factories"
-    CALLBACK_KW = "callback_factory"
+    MONITORS = "progress_monitors"
+    FUNC_MONITORS = "function_monitors"
+    CODE_MONITORS = "code_monitors"
+
 
 
 
@@ -62,64 +74,76 @@ def _external_load(string):
     return obj
 
 
+def _substitute(struct, substit_dict):
+    if hasattr(struct, "startswith"):
+        if struct.startswith("$"):
+            return substit_dict[struct]
+        
+    elif hasattr(struct, "iteritems"):
+        for k, v in struct.iteritems():
+            struct[k] = _substitute(v, substit_dict)
 
+    else:
+        try:
+            for i, elem in enumerate(struct):
+                struct[i] = _substitute(elem, substit_dict)
+        except TypeError:
+            pass
 
+    return struct
 
 def _dict_config_v1(config_dict):
     manager = Manager()
 
-    # ---- Predefined stuffs  ---- #
-    rule_facto = __rule_factories__
-    hook_facto = __hook_factories__
-    callback_facto = __callback_factories__
-
-    # ---- Getting the rules ---- #
-    # Getting the external dict
-    if Const.RULES_FACTORIES_SECTION in config_dict:
-        rules_ext_d = config_dict[Const.RULES_FACTORIES_SECTION]
-        # Loading the external rules
-        for name, function in rules_ext_d.iteritems():
-            rule_facto[name] = _external_load(function)
+    # ---- Predefined replacement rules  ---- #
+    substit_dict = dict()
+    substit_dict.update(__rule_factories__)
+    substit_dict.update(__hook_factories__)
+    substit_dict.update(__callback_factories__)
 
 
-    # ---- Getting the hook factories ---- #
-    if Const.HOOK_FACTORIES_SECTION in config_dict:
-        hook_factories_ext_d = config_dict[Const.HOOK_FACTORIES_SECTION]
-        # Loading the external rules
-        for name, function in hook_factories_ext_d.iteritems():
-            hook_facto[name] = _external_load(function)
+    # ---- Adding the substitutions ---- #
+    for k, v in config_dict.iteritems():
+        if k.startswith("$"):
+            substit_dict[k] = _external_load(v)
 
+    # ---- Performing the substitutions ---- #
+    config_dict = _substitute(config_dict, substit_dict)
+
+    
 
     # ---- Getting the monitors ---- #
-    for name, conf in config_dict[Const.MONITORS_SECTION].iteritems():
-        # Building the callback factory
-        if Const.CALLBACK_TAG in conf:
-            callback_str = conf[Const.CALLBACK_TAG]
-            callback = callback_facto[callback_str]
-            del conf[Const.CALLBACK_TAG]
-            conf[Const.CALLBACK_KW] = callback
+    if Const.MONITORS in config_dict:
+        for name, conf in config_dict[Const.MONITORS].iteritems():        
+            # Adding to the manager
+            manager.add_config(name, conf)
 
+    # ---- Getting the monitors for functions ---- #
+    if Const.FUNC_MONITORS in config_dict:
+        for name, conf in config_dict[Const.FUNC_MONITORS].iteritems():
+            # Adding to the manager
+            manager.add_config(name, conf)
 
-        # Building the rule factory
-        if Const.RULE_TAG in conf:
-            rule_str = conf[Const.RULE_TAG]
-            rule = rule_facto[rule_str]
-            del conf[Const.RULE_TAG]
-            conf[Const.RULE_KW] = rule
-
-        # Creating the monitor
-        monitor = monitor_factory(**conf)
-
-        # Setting the monitor
-        manager.add_monitor(name, monitor)
-
+    # ---- Getting the monitors for functions ---- #
+    if Const.CODE_MONITORS in config_dict:
+        for name, conf in config_dict[Const.CODE_MONITORS].iteritems():
+            # Adding to the manager
+            manager.add_config(name, conf)
 
 # ============================ PUBLIC EXPOSURE ============================ #
 
-def get_monitor(name, *args, **kwargs):
-    return Manager().get_monitor(name, *args, **kwargs) 
+def get_monitor(monitor_name, **kwargs):
+    conf = Manager().get_config(monitor_name, **kwargs) 
+    return monitor_factory(**conf)
 
 
+def monitor_with(monitor_name, **kwargs):
+    conf = Manager().get_config(monitor_name, **kwargs)
+    return monitor_function_factory(**conf)
+
+def formated_function_monitoring(monitor_name, **kwargs):
+    conf = Manager().get_config(monitor_name, **kwargs)
+    return formated_code_monitoring(**conf)
 
 def dict_config(config_dict):
     version = config_dict.get(Const.VERSION, 1)

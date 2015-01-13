@@ -4,6 +4,7 @@ all: clean in test
 clean:
 	python setup.py clean
 	find . -name .DS_Store -delete
+	find . -name *.pyc -delete
 	rm -rf build
 
 in: inplace

@@ -12,7 +12,7 @@ from distutils.core import setup
 
 import progressmonitor
 
-NAME = 'progressmonitor'
+NAME = "progressmonitor"
 VERSION = progressmonitor.__version__
 AUTHOR = "Jean-Michel Begon"
 AUTHOR_EMAIL = "jm.begon@gmail.com"
@@ -36,6 +36,8 @@ CLASSIFIERS = [
     'Topic :: Utilities',
     'Topic :: Software Development :: Libraries',
 ]
+
+
 
 if __name__ == '__main__':
     setup(name=NAME,

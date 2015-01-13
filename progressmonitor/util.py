@@ -8,7 +8,16 @@ __copyright__ = "3-clause BSD License"
 __version__ = 'dev'
 __date__ = "08 January 2015"
 
+import math
 from inspect import getargspec
+import logging
+
+
+def nb_notifs_from_rate(rate, length):
+    if length is None:
+        raise AttributeError("'nb_notifs' can only be determined if length is available")
+    return int(math.ceil(1./rate))
+
 
 # ============================== FORMATER ============================== #
 
@@ -98,26 +107,29 @@ def format_size(nb_bytes):
 # ============================== INSPECTION ============================== #
 
 
-def kw_intersect(function, dictionary):
-    sub_dict = dict()
+def kw_intersect(function, dictionary, *args, **kwargs):
     try:
         prototype = getargspec(function)
     except TypeError:
         # In case of a class
-        print ">>>", function, function.__class__ #TODO remove
         prototype = getargspec(function.__init__)
 
     # If function as a **kwargs, it will swallow all the extra arguments
-    if prototype.keywords is not None:
+    if prototype.keywords is not None and len(args) == 0:
         return dictionary
+    # Intersecting dictionaries
+    sub_dict = dict()
     func_args = prototype.args
-    for key in func_args:
-        if key in dictionary:
-            sub_dict[key] = dictionary[key]
+    for i, key in enumerate(func_args):
+        if i >= len(args):
+            if key in dictionary:
+                sub_dict[key] = dictionary[key]
+            if key in kwargs:
+                sub_dict[key] = kwargs[key]
     return sub_dict
 
-def call_with(function, dictionary, *args):
-    return function(*args, **kw_intersect(function, dictionary))
+def call_with(function, dictionary, *args, **kwargs):
+    return function(*args, **kw_intersect(function, dictionary, *args, **kwargs))
 
 
 def swallow_kwargs():
@@ -136,12 +148,14 @@ def fallback_embeder(func, *funcs):
     def apply_fallback(*args, **kwargs):
         try:
             return call_with(func, kwargs, *args)
-        except TypeError:
+        except TypeError, reason1:
+            logger = logging.getLogger("progressmonitor.fallback")
+            logger.warning("Fallback : "+str(reason1))
             for func_ in funcs:
                 try:
                     return call_with(func_, kwargs, *args)
-                except TypeError:
-                    pass
+                except TypeError, reason2:
+                    logger.warning("Fallback : "+str(reason2))
             raise
     return apply_fallback
 

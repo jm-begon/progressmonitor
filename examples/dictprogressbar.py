@@ -24,6 +24,9 @@ def do_task():
     time.sleep(0.1)
 
 
+def writeln(messages):
+    for message in messages:
+        print message
 
 
 if __name__ == '__main__':
@@ -33,27 +36,35 @@ if __name__ == '__main__':
     span=10
     decay_rate = 0.1
 
-    format_str = "{thread} {task} {progressbar} {time} {exception}"
-    format_str2= "Process {pid}: {task} [{iteration}] -- {elapsed} {exception}"
+    format_str = "{$thread} {$task} {$progressbar} {$time} {$exception}"
+    format_str2= "Process {$pid}: {$task} [{$iteration}] -- {$elapsed} {$exception}"
+
     
     config = {
         "version": 1,
-        "monitors": {
+        "$writeln": ""+__name__+".writeln",
+        "progress_monitors": {
             "lengthy": {
                 "format_str": format_str,
                 "rate": rate,
                 "span": span,
                 "decay_rate":decay_rate,
                 "blank": " ", 
-                "callback": "stderr"
+                "callback_factory": "$multi",
+                "callback_factories": ["$stdout", "$store_till_end"],
+                "destination": "$writeln",
+            },
+            "lengthy.overwrite": {
+                "callback_factory": "$overwrite",
+                "name": "Fallback example",
             },
             "unlengthy": {
-                "rule": "by_rate",
+                "rule_factory": "$by_rate",
                 "format_str": format_str2,
                 "rate": None,
                 "span": span,
-                "decay_rate": decay_rate
-            }
+                "decay_rate": decay_rate,
+            },
         }
     }
 
@@ -63,7 +74,7 @@ if __name__ == '__main__':
     print "With length example"
     print "---------------------"
     generator_ = xrange(length)
-    for _ in get_monitor("lengthy")(generator_):
+    for _ in get_monitor("lengthy", task_name="Lengthy")(generator_):
         do_task()
 
     print
@@ -74,7 +85,7 @@ if __name__ == '__main__':
     print "Fallback example (without length)"
     print "---------------------"
     generator_ = lrange(length)
-    for _ in get_monitor("lengthy")(generator_):
+    for _ in get_monitor("lengthy.overwrite")(generator_):
         do_task()
 
     print

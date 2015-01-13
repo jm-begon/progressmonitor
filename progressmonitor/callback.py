@@ -13,6 +13,8 @@ import os
 from functools import partial
 from logging import getLogger, INFO
 
+from .util import call_with
+
 
 
 def _writeln(stream, string, last_com=False):
@@ -51,11 +53,35 @@ def logging_callback_factory(name, log_level=INFO):
 
     return logging_callback
 
+
+def store_till_end_callback_factory(destination=lambda m: None):
+    messages = []
+    def store_till_end_callback(name, last_com=False):
+        messages.append(name)
+        if last_com:
+            destination(messages)
+    return store_till_end_callback
+
+
+def multi_callback_factory(callback_factories, **kwargs):
+    callbacks = []
+    for factory in callback_factories:
+        callbacks.append(call_with(factory, kwargs))
+
+    def multi_callback(string, last_com=False): 
+        for callback in callbacks:
+            callback(string, last_com)
+
+    return multi_callback
+
+
 __callback_factories__ = {
-    "stdout" : stdout_callback_factory,
-    "stderr" : stderr_callback_factory,
-    "overwrite" : overwrite_callback_factory,
-    "log" : logging_callback_factory
+    "$stdout" : stdout_callback_factory,
+    "$stderr" : stderr_callback_factory,
+    "$overwrite" : overwrite_callback_factory,
+    "$log" : logging_callback_factory,
+    "$store_till_end" : store_till_end_callback_factory,
+    "$multi" : multi_callback_factory
 
 }
 

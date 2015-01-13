@@ -15,7 +15,9 @@ from .util import fallback
 # =========================== NOTIFICATION RULES =========================== #
 
 def always_notif_rule_factory():
-    return lambda task: True
+    def true():
+        return True
+    return true
 
 def periodic_rule_factory(frequency):
     last_update = [time.time()]
@@ -42,8 +44,9 @@ def span_rule_factory(span=1):
     span_update : callable (int)
         A function wi
     """
-    return lambda task: (False if task.progress() == 0 else 
-                         (task.progress() % span == 0))
+    def span_notif_rule(task):
+        return False if task.progress() == 0 else (task.progress() % span == 0)
+    return span_notif_rule
 
 
 @fallback(span_rule_factory)
@@ -62,10 +65,10 @@ def rate_rule_factory(rate, length):
 
 
 __rule_factories__ = {
-    "always_true" : always_notif_rule_factory,
-    "periodic" : periodic_rule_factory,
-    "by_span" : span_rule_factory,
-    "by_rate" : rate_rule_factory
+    "$always_true" : always_notif_rule_factory,
+    "$periodic" : periodic_rule_factory,
+    "$by_span" : span_rule_factory,
+    "$by_rate" : rate_rule_factory
 
 }
 

@@ -11,16 +11,18 @@ __date__ = "08 January 2015"
 
 
 import time
+from functools import partial
 
 from .notifrules import always_notif_rule_factory
+from .util import call_with
 
 # ============================== TASK ============================== #
 class Task(object):
     """
-    ================
-    ProgressableTask
-    ================
-    A :class:`ProgressableTask` represents a task composed of several steps
+    ====
+    Task
+    ====
+    A :class:`Task` represents a task composed of several steps
 
 
     Class attributes
@@ -257,7 +259,7 @@ class ProgressableTask(Task):
 
 # ============================ PROGRESS MONITOR ============================ #
 
-def monitor_progress(generator, hook, name=None, 
+def monitor_progress(generator, hook, task_name=None, 
                      should_notify=always_notif_rule_factory()):
 
     """
@@ -272,7 +274,7 @@ def monitor_progress(generator, hook, name=None,
         - one mandatory argument which is a :class:`Task`instance
         - one optional argument which is an exception istance in
         case an error occured
-    name : str or None (Default : None)
+    task_name : str or None (Default : None)
         The  name of the task. If None, a default name will be provided
     should_notify : callable (:class:`Task`) --> bool
         The notification rule. A function which takes as input the task
@@ -290,7 +292,7 @@ def monitor_progress(generator, hook, name=None,
 
     # Creating the task
     try:
-        task = ProgressableTask(length, name)
+        task = ProgressableTask(length, task_name)
         task.start()
         progress = 0
         # Log the start of the task
@@ -322,8 +324,79 @@ def monitor_progress(generator, hook, name=None,
 
 
 
+def monitor_function(function, hook, task_name=None, *args, **kwargs):
+    task = ProgressableTask(1, task_name)
+    hook_kwargs = {
+        "task": task,
+        "exception": None,
+        "monitored_func": function,
+        "monitored_args": args,
+        "monitored_kwargs": kwargs,
+        "monitored_result": None,
+    }
+    try:
+        #Initial hook call
+        call_with(hook, hook_kwargs)
+
+        result = function(*args, **kwargs)
+        hook_kwargs["monitored_result"] = result
+        # Ends the task
+        task.update(1)
+        task.close(True)
+        # Notify last progress
+        call_with(hook, hook_kwargs)
+
+    except Exception as excep:
+        # Ends the task
+        task.close(False)
+        # Notify last progress
+        hook_kwargs["exception"] = excep
+        call_with(hook, hook_kwargs)
+        raise
+
+    return result
+
+
+def monitor_this(hook, task_name=None):
+    
+    def apply_monitoring(function):
+        return partial(monitor_function, function, hook, task_name)
+    return apply_monitoring
 
 
 
+class CodeMonitor(object):
+
+    def __init__(self, hook, task_name=None):
+        self._hooks = [hook]
+        self.task = ProgressableTask(1, task_name)
+
+    def add_hooks(self, hook):
+        self._hooks.append(hook)
+
+    def start(self):
+        self.task.start()
+
+    def stop(self, finished=True, exception=None):
+        self.task.close(finished)
+        for hook in self._hooks:
+            hook(self.task, exception)
+
+    def __enter__(self):
+        self.start()
+        return self
+
+    def __exit__(self, type, value, traceback):
+        if value is None:
+            is_done = ((self.task.nb_steps() is None) or 
+                       (self.task.progress() >= self.task.nb_steps()))
+            self.stop(is_done)
+        else:
+            # Exception
+            self.stop(False, value)
+        # Let the exception propagate, if any
+        return False
 
 
+def monitor_code(hook, task_name=None):
+    return CodeMonitor(hook, task_name)
