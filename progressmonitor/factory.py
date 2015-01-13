@@ -14,7 +14,7 @@ from string import Formatter
 from .util import call_with, nb_notifs_from_rate
 from .notifrules import (rate_rule_factory, span_rule_factory, 
                          periodic_rule_factory)
-from .monitor import monitor_progress, monitor_function, monitor_code
+from .monitor import monitor_generator, monitor_function, monitor_code
 from .hook import (fullbar_hook_factory, chunkbar_hook_factory, 
                    iterchunk_hook_factory, formated_hook_factory,
                    __hook_factories__)
@@ -39,7 +39,7 @@ def remain_time_progressbar(generator, rate, decay_rate=0.1,
 
     task_name = kwargs.get("task_name", None)
 
-    return monitor_progress(generator, hook, task_name, rule)
+    return monitor_generator(generator, hook, task_name, rule)
 
 def chunck_progressbar(generator, chunk_size, total_size=None, 
                        rate=0.1, span=10, decay_rate=0.1, 
@@ -65,7 +65,7 @@ def chunck_progressbar(generator, chunk_size, total_size=None,
                                       *args, **kwargs)
         rule = span_rule_factory(span)
 
-    return monitor_progress(generator, hook, task_name, rule)
+    return monitor_generator(generator, hook, task_name, rule)
 
 
 
@@ -114,7 +114,7 @@ def formated_monitoring(generator,
     # ---- Naming the task ---- #
     task_name = kwargs.get("task_name", None)
 
-    return monitor_progress(generator, hook, task_name, rule)
+    return monitor_generator(generator, hook, task_name, rule)
 
 
 

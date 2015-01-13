@@ -42,7 +42,9 @@ if __name__ == '__main__':
     
     config = {
         "version": 1,
-        "$writeln": ""+__name__+".writeln",
+        "callbacks" : {
+            "$writeln": ""+__name__+".writeln",
+        },
         "progress_monitors": {
             "lengthy": {
                 "format_str": format_str,

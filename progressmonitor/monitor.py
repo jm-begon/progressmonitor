@@ -1,6 +1,10 @@
 # -*- coding: utf-8 -*-
 """
-A helper module for monitoring progresses
+The :mod:`progressmonitor.monitor` module is progressmonitor's main module.
+It provides library users with methods to monitor:
+    - iterators/generators (:func:`monitor_progress`)
+    - functions (:func:`monitor_function`)
+    - piece of code (:func:`monitor_code`)
 """
 from __future__ import generators
 
@@ -179,7 +183,7 @@ class ProgressableTask(Task):
     ProgressableTask
     ================
 
-    A :class:`Task` which can be run
+    A :class:`Task` which can be run.
     """
 
     def __init__(self, nb_steps, name=None):
@@ -259,7 +263,7 @@ class ProgressableTask(Task):
 
 # ============================ PROGRESS MONITOR ============================ #
 
-def monitor_progress(generator, hook, task_name=None, 
+def monitor_generator(generator, hook, task_name=None, 
                      should_notify=always_notif_rule_factory()):
 
     """
@@ -280,9 +284,13 @@ def monitor_progress(generator, hook, task_name=None,
         The notification rule. A function which takes as input the task
         and decide whether to notify (return True) or not (return False)
 
-    Warning
-    -------
-    Needless to say that this function produces overhead. Use it with care.
+    Yield
+    -----
+    The elements of the given generator
+
+    Exception
+    ---------
+    Exceptions are not swallowed
     """
     length = None
     try:
@@ -325,6 +333,37 @@ def monitor_progress(generator, hook, task_name=None,
 
 
 def monitor_function(function, hook, task_name=None, *args, **kwargs):
+    """
+    Monitor the given function. That is, submit two events to the hook:
+        - Task creation
+        - Task end (either completion or interruption)
+
+    Parameters
+    ----------
+    function : callable 
+        The function to monitor
+    hook : callable (:class:`Task`, [exception])
+        A hook on which to register progress. It must have
+        - one mandatory argument which is a :class:`Task`instance
+        - one optional argument which is an exception istance in
+        case an error occured
+    task_name : str or None (Default : None)
+        The  name of the task. If None, a default name will be provided
+    *args :
+        The positional arguments to call the function with
+    **kwargs :
+        The keyword arguments to call the function with
+
+    Return
+    ------
+    result : 
+        The result of the function(*args, **kwargs) call
+
+    Exception
+    ---------
+    Exceptions are not swallowed
+    """
+    # Task will only last one call
     task = ProgressableTask(1, task_name)
     hook_kwargs = {
         "task": task,
@@ -358,6 +397,19 @@ def monitor_function(function, hook, task_name=None, *args, **kwargs):
 
 
 def monitor_this(hook, task_name=None):
+    """
+    Decorator for :func:`monitor_function`
+
+    @monitor_this(hook=hook, task_name=name)
+    def foo():
+        # compute stuff
+
+    is equivalent to
+
+    monitor_function(foo, hook=hook, task_name=name)
+
+    Yes, it's that easy !
+    """
     
     def apply_monitoring(function):
         return partial(monitor_function, function, hook, task_name)
@@ -366,6 +418,34 @@ def monitor_this(hook, task_name=None):
 
 
 class CodeMonitor(object):
+    """
+    ===========
+    CodeMonitor
+    ===========
+    A class:`CodeMonitor` is a context manager for monitoring pieces
+    of code
+
+    Constructor parameters
+    ----------------------
+    hook : callable (:class:`Task`, [exception])
+        A hook on which to register progress. It must have
+        - one mandatory argument which is a :class:`Task`instance
+        - one optional argument which is an exception istance in
+        case an error occured
+    task_name : str or None (Default : None)
+        The  name of the task. If None, a default name will be provided
+
+    Exception
+    ---------
+    Exceptions are not swallowed
+
+    Usage
+    -----
+    with CodeMonitor(hook=hook, task_name=name):
+        # compute stuff
+
+    Yes, it's that easy !
+    """
 
     def __init__(self, hook, task_name=None):
         self._hooks = [hook]
@@ -399,4 +479,23 @@ class CodeMonitor(object):
 
 
 def monitor_code(hook, task_name=None):
+    """
+    Provide a context manager to monitor code blocks.
+
+    Parameters
+    ----------
+    hook : callable (:class:`Task`, [exception])
+        A hook on which to register progress. It must have
+        - one mandatory argument which is a :class:`Task`instance
+        - one optional argument which is an exception istance in
+        case an error occured
+    task_name : str or None (Default : None)
+        The  name of the task. If None, a default name will be provided
+
+    Return
+    ------
+    code_monitor : :class:`CodeMonitor`
+        the context manager
+    """
+    # Provided for aesthetic reasons
     return CodeMonitor(hook, task_name)

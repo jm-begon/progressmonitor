@@ -1,5 +1,23 @@
 # -*- coding: utf-8 -*-
 """
+:mod:`notifrules` contains notification rule factories. The factories return
+notification rule per se.
+
+A notification rule is a function of the type:
+    Parameters
+    ----------
+    task : class:`Task`
+        The task on which to decide whether it is time to notify or not
+    Return
+    ------
+    should_notify : boolean
+        Whether the notification should be issued
+
+Notification rules are used for iterators/generators monitoring so as not
+to issue notification on every iteration.
+
+Notification rules should be provided through a factory so as to be 
+parametrizable and be accessed in the same fashion.
 """
 
 
@@ -15,15 +33,41 @@ from .util import fallback
 # =========================== NOTIFICATION RULES =========================== #
 
 def always_notif_rule_factory():
+    """
+    Return
+    ------
+    true : callable
+    """
     def true():
+        """
+        Return
+        ------
+        True
+        """
         return True
     return true
 
-def periodic_rule_factory(frequency):
+def periodic_rule_factory(period):
+    """
+    Parameters
+    ----------
+    period : float
+        The minimum period between two notification (in seconds)
+    Return
+    ------
+    periodic_notif_rule : callable
+        see :func:`periodic_notif_rule`
+    """
     last_update = [time.time()]
     def periodic_notif_rule(_):
+        """
+        Return
+        ------
+        should_notify : boolean
+            Whether to notify
+        """
         now = time.time()
-        if (now - last_update[0]) >= frequency:
+        if (now - last_update[0]) >= period:
             last_update[0] = now
             return True
         return False
@@ -34,6 +78,7 @@ def periodic_rule_factory(frequency):
 def span_rule_factory(span=1):
     """
     Indicates whether to notify or not base on a span
+    
     Parameters
     ----------
     span : int (Default : 1)

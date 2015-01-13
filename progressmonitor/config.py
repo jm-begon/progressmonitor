@@ -62,8 +62,10 @@ class Const(object):
     MONITORS = "progress_monitors"
     FUNC_MONITORS = "function_monitors"
     CODE_MONITORS = "code_monitors"
-
-
+    
+    CALLBACK_SEC = "callbacks"
+    RULE_SEC = "rules"
+    HOOK_SEC = "hooks"
 
 
 
@@ -80,11 +82,13 @@ def _substitute(struct, substit_dict):
             return substit_dict[struct]
         
     elif hasattr(struct, "iteritems"):
+        # dict --> inspect 
         for k, v in struct.iteritems():
             struct[k] = _substitute(v, substit_dict)
 
     else:
         try:
+            # List -> inspect
             for i, elem in enumerate(struct):
                 struct[i] = _substitute(elem, substit_dict)
         except TypeError:
@@ -103,9 +107,29 @@ def _dict_config_v1(config_dict):
 
 
     # ---- Adding the substitutions ---- #
-    for k, v in config_dict.iteritems():
-        if k.startswith("$"):
-            substit_dict[k] = _external_load(v)
+    # rules
+    if Const.RULE_SEC in config_dict:
+        for k, v in config_dict[Const.RULE_SEC].iteritems():
+            if k.startswith("$"):
+                loaded = _external_load(v)
+                substit_dict[k] = loaded
+                __rule_factories__[k] = loaded
+
+    # hook
+    if Const.HOOK_SEC in config_dict:
+        for k, v in config_dict[Const.HOOK_SEC].iteritems():
+            if k.startswith("$"):
+                loaded = _external_load(v)
+                substit_dict[k] = loaded
+                __hook_factories__[k] = loaded
+
+    # callback
+    if Const.CALLBACK_SEC in config_dict:
+        for k, v in config_dict[Const.CALLBACK_SEC].iteritems():
+            if k.startswith("$"):
+                loaded = _external_load(v)
+                substit_dict[k] = loaded
+                __callback_factories__[k] = loaded
 
     # ---- Performing the substitutions ---- #
     config_dict = _substitute(config_dict, substit_dict)
@@ -141,7 +165,7 @@ def monitor_with(monitor_name, **kwargs):
     conf = Manager().get_config(monitor_name, **kwargs)
     return monitor_function_factory(**conf)
 
-def formated_function_monitoring(monitor_name, **kwargs):
+def code_monitor(monitor_name, **kwargs):
     conf = Manager().get_config(monitor_name, **kwargs)
     return formated_code_monitoring(**conf)
 
