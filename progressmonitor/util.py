@@ -132,13 +132,6 @@ def call_with(function, dictionary, *args, **kwargs):
     return function(*args, **kw_intersect(function, dictionary, *args, **kwargs))
 
 
-def swallow_kwargs():
-    def apply_swallow_kwargs(f):
-        return lambda **kwargs: call_with(f, **kwargs)
-
-    return apply_swallow_kwargs
-
-
 
 # ============================== FALLBACKS ============================== #
 
@@ -165,6 +158,18 @@ def fallback(func1, *funcs):
         return fallback_embeder(f, *([func1]+list(funcs)))
     return fallback_wrapper
 
+
+
+class IdProxy(object):
+
+    def __call__(self, f):
+        return f
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, type, value, traceback):
+        return False
 
 
 

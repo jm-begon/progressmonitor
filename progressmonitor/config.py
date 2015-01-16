@@ -10,46 +10,56 @@ __date__ = "08 January 2015"
 
 import re
 from ast import literal_eval
+import logging
 
-from .factory import monitor as monitor_factory
-from .factory import monitor_function_factory, formated_code_monitoring
-from .hook import __hook_factories__
-from .notifrules import __rule_factories__
+from .factory import monitor_generator_factory
+from .factory import (monitor_function_factory, formated_code_monitoring)
+from .formatter import __formatter_factories__
+from .rule import __rule_factories__
 from .callback import __callback_factories__
+from .util import IdProxy
 
 # ============================ MANAGER ============================ #
 
 class Manager(object):
+
+    UNKNOWN_MONITOR = 0
+    GENERATOR_MONITOR = 1
+    FUNCTION_MONITOR = 2
+    CODE_MONITOR = 3
 
     _singleton = None
 
     def __new__(cls, *args, **kwargs):
         if cls._singleton is None:
             cls._singleton = super(Manager, cls).__new__(cls, *args, **kwargs)
-            cls._singleton._confs = dict()
+            cls._singleton._meta = dict()
         return cls._singleton
 
-    def add_config(self, monitor_name, conf):
-        self._confs[monitor_name] = conf
+    def add_config(self, monitor_name, conf, monitor_type):
+        self._meta[monitor_name] = (conf, monitor_type)
 
     def _get_ancestors_conf(self, monitor_name):
+        unknown = Manager.UNKNOWN_MONITOR
+        monitor_type = unknown
         conf = dict()
         prefixes = [monitor_name[:m.start()] 
                     for m  in re.finditer('\.',monitor_name)]
         prefixes.append(monitor_name)
         for prefix in prefixes:
-            conf.update(self._confs.get(prefix, dict()))
-        return conf
+            anc_conf, type_ = self._meta.get(prefix, (dict(), unknown))
+            if type_ != Manager.UNKNOWN_MONITOR:
+                monitor_type = type_
+            conf.update(anc_conf)
+        return conf, monitor_type
 
 
 
     def get_config(self, monitor_name, **kwargs):
-        conf = self._get_ancestors_conf(monitor_name)
+        conf, monitor_type = self._get_ancestors_conf(monitor_name)
         if len(kwargs) > 0:
-            tmp = conf.copy()
-            tmp.update(kwargs)
-            conf = tmp
-        return conf
+            conf.update(kwargs)
+        return conf, monitor_type
 
 
 
@@ -59,13 +69,13 @@ class Manager(object):
 class Const(object):
 
     VERSION = "version"
-    MONITORS = "progress_monitors"
+    MONITORS = "generator_monitors"
     FUNC_MONITORS = "function_monitors"
     CODE_MONITORS = "code_monitors"
     
     CALLBACK_SEC = "callbacks"
     RULE_SEC = "rules"
-    HOOK_SEC = "hooks"
+    FORMATTER_SEC = "formatters"
 
 
 
@@ -102,7 +112,7 @@ def _dict_config_v1(config_dict):
     # ---- Predefined replacement rules  ---- #
     substit_dict = dict()
     substit_dict.update(__rule_factories__)
-    substit_dict.update(__hook_factories__)
+    substit_dict.update(__formatter_factories__)
     substit_dict.update(__callback_factories__)
 
 
@@ -116,12 +126,12 @@ def _dict_config_v1(config_dict):
                 __rule_factories__[k] = loaded
 
     # hook
-    if Const.HOOK_SEC in config_dict:
-        for k, v in config_dict[Const.HOOK_SEC].iteritems():
+    if Const.FORMATTER_SEC in config_dict:
+        for k, v in config_dict[Const.FORMATTER_SEC].iteritems():
             if k.startswith("$"):
                 loaded = _external_load(v)
                 substit_dict[k] = loaded
-                __hook_factories__[k] = loaded
+                __formatter_factories__[k] = loaded
 
     # callback
     if Const.CALLBACK_SEC in config_dict:
@@ -136,40 +146,59 @@ def _dict_config_v1(config_dict):
 
     
 
-    # ---- Getting the monitors ---- #
+    # ---- Getting the monitors for generators---- #
     if Const.MONITORS in config_dict:
         for name, conf in config_dict[Const.MONITORS].iteritems():        
             # Adding to the manager
-            manager.add_config(name, conf)
+            manager.add_config(name, conf, Manager.GENERATOR_MONITOR)
 
     # ---- Getting the monitors for functions ---- #
     if Const.FUNC_MONITORS in config_dict:
         for name, conf in config_dict[Const.FUNC_MONITORS].iteritems():
             # Adding to the manager
-            manager.add_config(name, conf)
+            manager.add_config(name, conf, Manager.FUNCTION_MONITOR)
 
     # ---- Getting the monitors for functions ---- #
     if Const.CODE_MONITORS in config_dict:
         for name, conf in config_dict[Const.CODE_MONITORS].iteritems():
             # Adding to the manager
-            manager.add_config(name, conf)
+            manager.add_config(name, conf, Manager.CODE_MONITOR)
 
 # ============================ PUBLIC EXPOSURE ============================ #
+def get_config(monitor_name, **kwargs):
+    conf, _ = Manager().get_config(monitor_name, **kwargs)
+    return conf
 
 def get_monitor(monitor_name, **kwargs):
-    conf = Manager().get_config(monitor_name, **kwargs) 
-    return monitor_factory(**conf)
+    conf, monitor_type = Manager().get_config(monitor_name, **kwargs)
+    if monitor_type == Manager.GENERATOR_MONITOR:
+        return monitor_generator_factory(**conf)
+    elif monitor_type == Manager.FUNCTION_MONITOR:
+        return monitor_function_factory(**conf)
+    elif monitor_type == Manager.CODE_MONITOR:
+        return formated_code_monitoring(**conf)
+    else:
+        # If unknown, do not crash caller code
+        logger = logging.getLogger('progressmonitor.config')
+        msg = "Unknown monitor name '%s'. Skipping monitoring." % monitor_name
+        logger.warning(msg)
+        return IdProxy()
 
+def get_generator_monitor(monitor_name, **kwargs):
+    conf = get_config(monitor_name, **kwargs)
+    return monitor_generator_factory(**conf)
 
-def monitor_with(monitor_name, **kwargs):
-    conf = Manager().get_config(monitor_name, **kwargs)
+def get_function_monitor(monitor_name, **kwargs):
+    conf = get_config(monitor_name, **kwargs)
     return monitor_function_factory(**conf)
 
-def code_monitor(monitor_name, **kwargs):
-    conf = Manager().get_config(monitor_name, **kwargs)
+def get_code_monitor(monitor_name, **kwargs):
+    conf = get_config(monitor_name, **kwargs)
     return formated_code_monitoring(**conf)
 
-def dict_config(config_dict):
+
+
+def parse_dict_config(config_dict):
     version = config_dict.get(Const.VERSION, 1)
     if version == 1:
         _dict_config_v1(config_dict)
@@ -177,7 +206,7 @@ def dict_config(config_dict):
         raise AttributeError("Version "+str(version)+" is not supported")
 
 
-def file_config(config_file):
+def parse_file_config(config_file):
     with open(config_file) as fp:
         config_dict = literal_eval(fp.read())
-    dict_config(config_dict)
+    parse_dict_config(config_dict)

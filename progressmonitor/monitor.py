@@ -17,8 +17,7 @@ __date__ = "08 January 2015"
 import time
 from functools import partial
 
-from .notifrules import always_notif_rule_factory
-from .util import call_with
+from .rule import always_notif_rule_factory
 
 # ============================== TASK ============================== #
 class Task(object):
@@ -76,6 +75,7 @@ class Task(object):
         self._end_time = None
         self._start_time = time.time()
 
+    @property
     def id(self):
         """
         Return
@@ -85,6 +85,7 @@ class Task(object):
         """
         return self._id
 
+    @property
     def name(self):
         """
         Return
@@ -94,6 +95,7 @@ class Task(object):
         """
         return self._name
 
+    @property
     def status(self):
         """
         Return
@@ -103,6 +105,7 @@ class Task(object):
         """
         return self._status
 
+    @property
     def nb_steps(self):
         """
         Returns
@@ -113,11 +116,12 @@ class Task(object):
         return self._nb_steps
 
     def __len__(self):
-        steps = self.nb_steps()
+        steps = self.nb_steps
         if steps is None:
             raise AttributeError("Unbounded task")
         return steps
 
+    @property
     def duration(self):
         """
         Return
@@ -131,6 +135,7 @@ class Task(object):
         else:
             return time.time() - self._start_time
 
+    @property
     def progress(self):
         """
         Return
@@ -140,6 +145,7 @@ class Task(object):
         """
         return self._progress
 
+    @property
     def is_completed(self):
         """
         Return
@@ -149,6 +155,7 @@ class Task(object):
         """
         return self._status == Task.DONE
 
+    @property
     def timestamp(self):
         """
         Return
@@ -159,9 +166,9 @@ class Task(object):
         return self._start_time
 
     def __str__(self):
-        length = self.nb_steps()
+        length = self.nb_steps
         length = str(length) if length is not None else "???"
-        status = self.status()
+        status = self.status
         if status == Task.READY:
             status = "is ready"
         elif status == Task.RUNNING:
@@ -172,8 +179,8 @@ class Task(object):
             status = "has been aborted"
         else:
             status = "unknown status"
-        desc = "Task #%d '%s' (%d/%s) %s." % (self.id(), self.name(), 
-                                              self.progress(), length, status)
+        desc = "Task #%d '%s' (%d/%s) %s." % (self.id, self.name, 
+                                              self.progress, length, status)
         return desc
 
 
@@ -215,7 +222,7 @@ class ProgressableTask(Task):
             True if the task is completed, False otherwise
         """
         if self._status > Task.RUNNING:
-            return self.is_completed()
+            return self.is_completed
         self._status = Task.RUNNING
         self._progress = progress
         if self._nb_steps is None:
@@ -321,7 +328,7 @@ def monitor_generator(generator, hook, task_name=None,
         # Ends the task
         task.close(True)
         # Notify last progress
-        hook(task)
+        hook(task=task)
     except Exception as excep:
         # Ends the task
         task.close(False)
@@ -366,8 +373,6 @@ def monitor_function(function, hook, task_name=None, *args, **kwargs):
     # Task will only last one call
     task = ProgressableTask(1, task_name)
     hook_kwargs = {
-        "task": task,
-        "exception": None,
         "monitored_func": function,
         "monitored_args": args,
         "monitored_kwargs": kwargs,
@@ -375,7 +380,7 @@ def monitor_function(function, hook, task_name=None, *args, **kwargs):
     }
     try:
         #Initial hook call
-        call_with(hook, hook_kwargs)
+        hook(task, None, **hook_kwargs)
 
         result = function(*args, **kwargs)
         hook_kwargs["monitored_result"] = result
@@ -383,37 +388,18 @@ def monitor_function(function, hook, task_name=None, *args, **kwargs):
         task.update(1)
         task.close(True)
         # Notify last progress
-        call_with(hook, hook_kwargs)
+        hook(task, None, **hook_kwargs)
 
     except Exception as excep:
         # Ends the task
         task.close(False)
         # Notify last progress
-        hook_kwargs["exception"] = excep
-        call_with(hook, hook_kwargs)
+        hook(task, excep, **hook_kwargs)
         raise
 
     return result
 
 
-def monitor_this(hook, task_name=None):
-    """
-    Decorator for :func:`monitor_function`
-
-    @monitor_this(hook=hook, task_name=name)
-    def foo():
-        # compute stuff
-
-    is equivalent to
-
-    monitor_function(foo, hook=hook, task_name=name)
-
-    Yes, it's that easy !
-    """
-    
-    def apply_monitoring(function):
-        return partial(monitor_function, function, hook, task_name)
-    return apply_monitoring
 
 
 
@@ -456,6 +442,8 @@ class CodeMonitor(object):
 
     def start(self):
         self.task.start()
+        for hook in self._hooks:
+            hook(self.task, None)
 
     def stop(self, finished=True, exception=None):
         self.task.close(finished)
@@ -468,8 +456,8 @@ class CodeMonitor(object):
 
     def __exit__(self, type, value, traceback):
         if value is None:
-            is_done = ((self.task.nb_steps() is None) or 
-                       (self.task.progress() >= self.task.nb_steps()))
+            is_done = ((self.task.nb_steps is None) or 
+                       (self.task.progress >= self.task.nb_steps))
             self.stop(is_done)
         else:
             # Exception

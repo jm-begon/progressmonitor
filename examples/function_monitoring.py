@@ -12,19 +12,18 @@ __version__ = 'dev'
 
 import time
 
-from progressmonitor.monitor import monitor_this
-from progressmonitor.hook import elapsed_time_hook_factory
+from progressmonitor import monitor_this, dict_config, monitor_with
+from progressmonitor.formatter import elapsed_time_formatter_factory
 from progressmonitor.callback import stdout_callback_factory
-from progressmonitor.config import dict_config, monitor_with
 
 
 def get_hook():
-    eth = elapsed_time_hook_factory()
+    eth = elapsed_time_formatter_factory()
     cb = stdout_callback_factory()
 
-    def actual_hook(task, exception=None):
-        last_com = task.is_completed() or exception is not None
-        cb(eth(task, exception), last_com)
+    def actual_hook(task, exception=None, **kwargs):
+        last_com = task.is_completed or exception is not None
+        cb(eth(task, exception, **kwargs), last_com)
 
     return actual_hook
 
@@ -46,7 +45,7 @@ if __name__ == '__main__':
 
     print "Function monitoring example"
     print "---------------------------"
-    do_task(1, 2, a=3)
+    do_task(4, 2, a=3)
 
 
     print
@@ -60,7 +59,7 @@ if __name__ == '__main__':
         "function_monitors": {
             "f_monitor" : {
                 "callback_factory": "$stdout",
-                "format_str": "{$task} {$deblogger} {$elapsed} {$exception}",
+                "format_str": "{$task} {$elapsed} {$exception}",
                 "multiline": True,
             }
         }

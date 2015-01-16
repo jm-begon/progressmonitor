@@ -21,7 +21,7 @@ except ImportError:
     from urllib.error import URLError, HTTPError
     from urllib.request import urlopen
 
-from progressmonitor.factory import chunck_progressbar
+from progressmonitor import monitor_with, dict_config
 
 class Chunker:
 
@@ -60,27 +60,43 @@ class Chunker:
                 raise StopIteration()
             yield chunk
 
-    def get_total_size(self):
+    @property
+    def total_size(self):
         return self._total_size
 
-    def get_chunk_size(self):
+    @property
+    def chunk_size(self):
         return self._chunk_size
 
 
 if __name__ == '__main__':
-    span = 1
     rate = 0.1
     decay_rate = 0.1
 
     chunk_size = 256
     url = "http://www.google.com/images/srpr/logo11w.png"
 
+    format_str = "{$progressbar} {$chunk} {$time} {$exception}"
+
+
+    config = {
+        "version": 1,
+        "generator_monitors": {
+            "chunker": {
+                "format_str": format_str,
+                "chunk_size": chunk_size,
+                "decay_rate": decay_rate,
+                "rate": rate,
+            },
+        }
+    }
+
+    dict_config(config)
+
 
     with Chunker(url, chunk_size) as  chunker:
         print "Chuncker length:", len(chunker)
-        print "Chuncker total size:", chunker.get_total_size()
-        for chunk in chunck_progressbar(chunker, chunk_size, 
-                                        chunker.get_total_size(), 
-                                        rate, span, decay_rate):
+        print "Chuncker total size:", chunker.total_size
+        for chunk in monitor_with("chunker")(chunker):
             time.sleep(0.1)
 

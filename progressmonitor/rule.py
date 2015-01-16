@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-:mod:`notifrules` contains notification rule factories. The factories return
+:mod:`rule` contains notification rule factories. The factories return
 notification rule per se.
 
 A notification rule is a function of the type:
@@ -90,7 +90,7 @@ def span_rule_factory(span=1):
         A function wi
     """
     def span_notif_rule(task):
-        return False if task.progress() == 0 else (task.progress() % span == 0)
+        return False if task.progress == 0 else (task.progress % span == 0)
     return span_notif_rule
 
 
@@ -98,7 +98,7 @@ def span_rule_factory(span=1):
 def rate_rule_factory(rate, length):
     last_update = [0]
     def rate_notif_rule(task):
-        progress = task.progress()
+        progress = task.progress
         delta = (float(progress - last_update[0])/length)
         if delta >= rate:
             last_update[0] = progress

@@ -46,18 +46,20 @@ def overwrite_callback_factory(stream=sys.stdout):
 
     return overwrite_callback
 
-def logging_callback_factory(name, log_level=INFO):
-    logger = getLogger(name)
+def logging_callback_factory(logger_name="", log_level=INFO):
+    logger = getLogger(logger_name)
     def logging_callback(string, last_com=False):
         logger.log(log_level, string)
+        if last_com and hasattr(logger, "flush"):
+            logger.flush()
 
     return logging_callback
 
 
 def store_till_end_callback_factory(destination=lambda m: None):
     messages = []
-    def store_till_end_callback(name, last_com=False):
-        messages.append(name)
+    def store_till_end_callback(string, last_com=False):
+        messages.append(string)
         if last_com:
             destination(messages)
     return store_till_end_callback

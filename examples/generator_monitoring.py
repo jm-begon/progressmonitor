@@ -12,7 +12,7 @@ __version__ = 'dev'
 
 import time
 
-from progressmonitor.config import get_monitor, dict_config
+from progressmonitor import monitor_with, dict_config
 
 
 def lrange(n):
@@ -45,7 +45,7 @@ if __name__ == '__main__':
         "callbacks" : {
             "$writeln": ""+__name__+".writeln",
         },
-        "progress_monitors": {
+        "generator_monitors": {
             "lengthy": {
                 "format_str": format_str,
                 "rate": rate,
@@ -76,7 +76,7 @@ if __name__ == '__main__':
     print "With length example"
     print "---------------------"
     generator_ = xrange(length)
-    for _ in get_monitor("lengthy", task_name="Lengthy")(generator_):
+    for _ in monitor_with("lengthy", task_name="Lengthy")(generator_):
         do_task()
 
     print
@@ -87,7 +87,7 @@ if __name__ == '__main__':
     print "Fallback example (without length)"
     print "---------------------"
     generator_ = lrange(length)
-    for _ in get_monitor("lengthy.overwrite")(generator_):
+    for _ in monitor_with("lengthy.overwrite")(generator_):
         do_task()
 
     print
@@ -98,5 +98,5 @@ if __name__ == '__main__':
     print "Without length example"
     print "---------------------"
     generator_ = lrange(length)
-    for _ in get_monitor("unlengthy")(generator_):
+    for _ in monitor_with("unlengthy")(generator_):
         do_task()
