@@ -19,6 +19,8 @@ Monitoring functions can be as easy as:
 	@monitor_with("my_func_monitor")
 	function(x):
 		#do something
+		
+	function(x)
 
 Monitoring code can be as easy as:
 
