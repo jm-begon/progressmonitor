@@ -6,9 +6,9 @@ What, another progress bar toolbox ? Well, yes... and no! Progress monitor aims 
 
 It features three main functionnlities:
 
- 1. Monitoring progress with iterators/generators
- 2. Monitoring functions
- 3. Monitoring pieces of code
+	1. Monitoring progress with iterators/generators
+	2. Monitoring functions
+	3. Monitoring pieces of code
 
 Monitoring iterators/generators can be as easy as:
 
