@@ -45,11 +45,11 @@ def format_duration(duration, subsec_precision=2):
     >>> seconds = 23
     >>> duration = seconds + 60*(minutes + 60*(hours + 24*days))
     >>> format_duration(duration)
-    '1d 4h 52m 23s'
+    '1d 4h 52m 23.00s'
     """
     sec = duration % 60
     excess = int(duration) // 60  # minutes
-    res = ("%."+str(subsec_precision)+"f s") % sec
+    res = ("%."+str(subsec_precision)+"fs") % sec
     if excess == 0:
         return res
     minutes = excess % 60

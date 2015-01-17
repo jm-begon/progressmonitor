@@ -130,7 +130,7 @@ class Task(object):
             the duration of task in seconds (up to now if still running,
             up to completion if completed)
         """
-        if self._status == Task.DONE:
+        if self._status == Task.DONE or self._status == Task.ABORTED:
             return self._end_time - self._start_time
         else:
             return time.time() - self._start_time

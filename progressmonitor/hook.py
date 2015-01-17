@@ -48,6 +48,11 @@ class ProgressListener(object):
 
 # ============================= CALLBACK HOOKS =============================== #
 
+def callback_hook_factory(callback, formatter):
+    def callback_hook(task, exception=None, **kwargs):
+        callback(formatter(task, exception, **kwargs))
+    return callback_hook
+
 def set_callback(callback):
 
     def callback_hook(string_hook):

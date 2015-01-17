@@ -189,6 +189,17 @@ logging.getLogger('progressmonitor').addHandler(logging.NullHandler())
 # ============================= SHORTCUTS =============================== #
 
 def monitor(**kwargs):
+    """
+    Return a generator embedder.
+
+    Parameters
+    ----------
+    see :func:`formated_monitoring`
+
+    Return
+    ------
+    
+    """
     return monitor_generator_factory(**kwargs)
 
 

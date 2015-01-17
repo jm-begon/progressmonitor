@@ -38,7 +38,7 @@ def always_notif_rule_factory():
     ------
     true : callable
     """
-    def true():
+    def true(_):
         """
         Return
         ------
@@ -75,7 +75,7 @@ def periodic_rule_factory(period):
 
 
 @fallback(periodic_rule_factory)
-def span_rule_factory(span=1):
+def span_rule_factory(span):
     """
     Indicates whether to notify or not base on a span
     
