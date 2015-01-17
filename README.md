@@ -10,15 +10,18 @@ It features three main functionnlities:
 	- Monitoring pieces of code
 
 Monitoring iterators/generators can be as easy as:
+
 	for x in monitor_with("my_gen_monitor")(xrange(length)):
 		do_something(x)
 
 Monitoring functions can be as easy as:
+
 	@monitor_with("my_func_monitor")
 	function(x):
 		#do something
 
 Monitoring code can be as easy as:
+
 	with monitor_with("my_code_monitor"):
 		do_something()
 
