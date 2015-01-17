@@ -32,7 +32,7 @@ For an illustration of a download progressbar, check the examples.
 #### Monitoring functions can be as easy as: ####
 
 	@monitor_with("my_func_monitor")
-	mult(*args):
+	def mult(*args):
 		"""multiply the args"""
 		time.sleep(2)
 		return reduce(lambda x, y: x*y, args)
@@ -114,4 +114,4 @@ from the root of the project.
 How to contribute?
 ------------------
 
-To contribute, fork the library, make your improvement and send back a pull request.
+To contribute, fork the library, make your improvements and send back a pull request.
