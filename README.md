@@ -10,7 +10,7 @@ It features three main functionnlities:
   2. Monitoring functions
   3. Monitoring pieces of code
 
-# Monitoring iterators/generators can be as easy as: #
+#### Monitoring iterators/generators can be as easy as: ####
 
 	for x in monitor_with("my_gen_monitor")(xrange(length)):
 		do_something(x)
