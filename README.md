@@ -5,9 +5,9 @@ Progress monitor is a library for monitoring progress on time intensive tasks.
 What, another progress bar toolbox ? Well, yes... and no! Progress monitor aims at giving flexible tools for monitoring progress with the least possible buiseness code invasion.
 
 It features three main functionnlities:
-	* Monitoring progress with iterators/generators
-	* Monitoring functions
-	* Monitoring pieces of code
+	1. Monitoring progress with iterators/generators
+	2. Monitoring functions
+	3. Monitoring pieces of code
 
 Monitoring iterators/generators can be as easy as:
 
