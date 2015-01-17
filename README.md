@@ -22,10 +22,14 @@ with possible output:
 	...
 	[=====>     ] 50.00% elapsed time: 5.69s remaining time (estimation): 6.38s total time (estimation): 12.07s 
 	...
-	[==========>] 100.00% elapsed time: 10.53s  
+	[=========> ] 90.00% elapsed time: 10.22s remaining time (estimation): 0.57s total time (estimation): 10.79s 
+	[==========>] 100.00% elapsed time: 10.53s
 
 
-Monitoring functions can be as easy as:
+For an illustration of a download progressbar, check the examples.
+
+
+#### Monitoring functions can be as easy as: ####
 
 	@monitor_with("my_func_monitor")
 	function(x):
@@ -60,7 +64,7 @@ with possible output:
 	Started: Fri Jan 16 13:55:46 2015
 	Duration : 2.01 s
 
-Monitoring code can be as easy as:
+#### Monitoring code can be as easy as: ####
 
 	with monitor_with("my_code_monitor"):
 		do_something()
