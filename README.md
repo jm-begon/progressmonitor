@@ -10,10 +10,20 @@ It features three main functionnlities:
   2. Monitoring functions
   3. Monitoring pieces of code
 
-Monitoring iterators/generators can be as easy as:
+# Monitoring iterators/generators can be as easy as: #
 
 	for x in monitor_with("my_gen_monitor")(xrange(length)):
 		do_something(x)
+
+with possible output:
+
+	[>          ] 0.00%  
+	[=>         ] 10.00% elapsed time: 1.14s remaining time (estimation): 9.42s 
+	...
+	[=====>     ] 50.00% elapsed time: 5.69s remaining time (estimation): 6.38s total time (estimation): 12.07s 
+	...
+	[==========>] 100.00% elapsed time: 10.53s  
+
 
 Monitoring functions can be as easy as:
 
@@ -22,6 +32,33 @@ Monitoring functions can be as easy as:
 		#do something
 		
 	function(x)
+
+with possible output:
+
+	Meta
+	====
+	Pid: 4663
+	Thread: Thread 'MainThread' (id=140735151985408)
+	Task name: Task # 0: do_task_monitoring
+
+	Function
+	========
+	Name: <function do_task at 0x102487d70>
+	Args: (<function _mult at 0x1023efa28>, 2, 4, -1)
+	Kwargs: {}
+
+	Result
+	======
+	_mult(2, 4, -1) = -8
+
+	Exception
+	=========
+	None
+
+	Time
+	====
+	Started: Fri Jan 16 13:55:46 2015
+	Duration : 2.01 s
 
 Monitoring code can be as easy as:
 
