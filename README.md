@@ -2,9 +2,9 @@ Progress monitor
 ================
 Progress monitor is a library for monitoring progress on time intensive tasks.
 
-What, another progress bar toolbox ? Well, yes... and no! Progress monitor aims at giving flexible tools for monitoring progress with the least possible buiseness code invasion.
+What, another progress bar toolbox ? Well, yes... and no! Progress monitor aims at giving flexible tools for monitoring progress with the least possible business code invasion.
 
-It features three main functionnlities:
+It features three main functionalities:
 
   1. Monitoring progress with iterators/generators
   2. Monitoring functions
@@ -32,10 +32,12 @@ For an illustration of a download progressbar, check the examples.
 #### Monitoring functions can be as easy as: ####
 
 	@monitor_with("my_func_monitor")
-	function(x):
-		#do something
+	mult(*args):
+		"""multiply the args"""
+		time.sleep(2)
+		return reduce(lambda x, y: x*y, args)
 		
-	function(x)
+	mult(2, 4, -1)
 
 with possible output:
 
@@ -47,13 +49,14 @@ with possible output:
 
 	Function
 	========
-	Name: <function do_task at 0x102487d70>
-	Args: (<function _mult at 0x1023efa28>, 2, 4, -1)
+	Name: <function mult at 0x102487d70>
+	Doc: multiply the args
+	Args: (2, 4, -1)
 	Kwargs: {}
 
 	Result
 	======
-	_mult(2, 4, -1) = -8
+	-8
 
 	Exception
 	=========

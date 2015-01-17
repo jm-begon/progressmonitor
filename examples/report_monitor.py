@@ -109,7 +109,18 @@ if __name__ == '__main__':
 
     @report_with("reporter", task_name="do_task_monitoring")
     def do_task(func=_add, *args):
-        """Task simulator"""
+        """
+        Task simulator
+
+        Parameters
+        ----------
+        func : callable
+            The function to apply
+        args : list
+
+        Return
+        ------
+        """
         comp = func.__name__+"("
         for arg in args:
             comp += str(arg)+", "

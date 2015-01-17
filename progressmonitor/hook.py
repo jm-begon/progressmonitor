@@ -90,6 +90,7 @@ Task name: {$task}
 Function
 ========
 Name: {_$fname}
+doc: {_$doc}
 Args: {_$fargs}
 Kwargs: {_$fkwargs}
 
@@ -123,7 +124,11 @@ Duration : {_$duration}
                                                            **kwargs)
 
             # Fill in the function part
-            fillin["_$fname"] = kwargs["monitored_func"]
+            func = kwargs["monitored_func"]
+            fillin["_$fname"] = func
+            fillin["_$doc"] = "n/a"
+            if hasattr(func, "__doc__"): 
+                fillin["_$doc"] = func.__doc__
             fillin["_$fargs"] = kwargs["monitored_args"]
             fillin["_$fkwargs"] = kwargs["monitored_kwargs"]
 
