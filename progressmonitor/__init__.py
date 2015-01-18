@@ -173,16 +173,53 @@ __date__ = "08 January 2015"
 from .monitor import (monitor_generator, monitor_function, monitor_code, 
                       CodeMonitor)
 
+from .rule import (always_notif_rule_factory, periodic_rule_factory,
+                   span_rule_factory, rate_rule_factory)
+
+from .formatter import (taskname_formatter_factory, host_formatter_factory,
+                        threadname_formatter_factory, 
+                        processid_formatter_factory, 
+                        nb_iterations_formatter_factory,
+                        exception_formatter_factory,
+                        progressbar_formatter_factory,
+                        completion_formatter_factory,
+                        elapsed_time_formatter_factory,
+                        remaining_time_formatter_factory,
+                        chunk_formatter_factory,
+                        string_formatter_factory)
+from .hook import (ProgressListener, callback_hook_factory, set_callback,
+                   formated_hook_factory, report_hook_factory)
+
+from .callback import (stdout_callback_factory, stderr_callback_factory, 
+                       overwrite_callback_factory, logging_callback_factory,
+                       store_till_end_callback_factory, multi_callback_factory)
 
 from .factory import (monitor_generator_factory, report_factory, 
                       formated_code_monitoring)
+
+from .util import (format_duration, format_size, call_with, fallback)
 
 
 from .config import (get_config, get_monitor, parse_dict_config, 
                      parse_file_config)
 
-__all__ = ["monitor_generator", "monitor_function", "monitor_this", 
-           "monitor_code", "CodeMonitor"]
+__all__ = ["monitor", "monitor_this", "code_monitor", "report_this",
+           "monitor_with", "report_with", "dict_config", "file_config",
+           "monitor_generator", "monitor_function", "monitor_this", 
+           "monitor_code", "CodeMonitor", "always_notif_rule_factory", 
+           "periodic_rule_factory", "span_rule_factory", "rate_rule_factory",
+           "taskname_formatter_factory", "host_formatter_factory",
+           "threadname_formatter_factory", "processid_formatter_factory", 
+           "nb_iterations_formatter_factory", "exception_formatter_factory",
+           "progressbar_formatter_factory", "completion_formatter_factory",
+           "elapsed_time_formatter_factory", "remaining_time_formatter_factory",
+           "chunk_formatter_factory", "string_formatter_factory", 
+           "ProgressListener", "callback_hook_factory", "set_callback",
+           "formated_hook_factory", "report_hook_factory", 
+           "stdout_callback_factory", "stderr_callback_factory", 
+           "overwrite_callback_factory", "logging_callback_factory",
+           "store_till_end_callback_factory", "multi_callback_factory",
+           "format_duration", "format_size", "call_with", "fallback"]
 
 
 from functools import partial

@@ -24,7 +24,7 @@ Hooks rely on callbacks which are of the form
 
 __author__ = "Begon Jean-Michel <jm.begon@gmail.com>"
 __copyright__ = "3-clause BSD License"
-__version__ = 'dev'
+__version__ = '1.0'
 __date__ = "08 January 2015"
 
 
@@ -199,7 +199,8 @@ def formated_hook_factory(callback, format_str, format_mapper):
 
 # ------------------------ for functions ------------------------------- #
 
-def report_hook_factory(callback, format_result=str, format_timestamp=time.ctime,
+def report_hook_factory(callback, format_result=str, 
+                        format_timestamp=time.ctime,
                         subsec_precision=2):
     """
     Return a :func:`report_hook`. Use for function only
@@ -288,7 +289,7 @@ Duration : {_$duration}
             fillin["_$fkwargs"] = task.kwargs
 
             # Fill in the results
-            fillin["_$fresult"] = task.result
+            fillin["_$fresult"] = format_result(task.result)
 
             # Fill in the exception
             if exception is None:

@@ -5,7 +5,7 @@ test queen
 
 __author__ = "Begon Jean-Michel <jm.begon@gmail.com>"
 __copyright__ = "3-clause BSD License"
-__version__ = 'dev'
+__version__ = '1.0'
 __date__ = "15 January 2015"
 
 from nose.tools import assert_equal
