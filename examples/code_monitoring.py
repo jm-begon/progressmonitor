@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 #! /usr/bin/env python
 """
-Custom progress bar configured from dictionary
+This example illustrates the code monitoring with :func:`code_monitor`.
 """
 
 from __future__ import generators

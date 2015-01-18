@@ -1,5 +1,76 @@
 # -*- coding: utf-8 -*-
 """
+Module :mod:`config` holds the whole configuration mechanism. 
+
+Configuration can be conducted either from a dictionary :func:`dict_config` or
+from a file :func:`file_config` holding directly the dictionary.
+
+Configuration may be done several times but overlaps will be overwritten,
+keeping the most recent one. This is also true with the preconfigured
+formatter, callbacks and rules, so beware !
+
+The dictionary has the following form:
+{
+    "version": <#num>,
+    "callbacks": {
+        <$aaa>: <mod.function_name>,
+        ...
+    },
+    "rules": {
+        <$bbb>: <mod.function_name>,
+        ...
+    },
+    "formatters": {
+        <$ccc>: <mod.function_name>,
+        ...
+    },
+    "generator_monitors": {
+        <gen_name>: {
+            <args>: <value>,
+            ...
+        },
+    },
+    "function_monitors": {
+        <func_name>: {
+            <args>: <value>,
+            ...
+        },
+    },
+    "code_monitors": {
+        <code_name>: {
+            <args>: <value>,
+            ...
+        },
+    },
+}
+
+Version section (mandatory)
+    <#num> => the version number
+callback section (optional)
+    <$aaa> => a string starting with '$' : the shortcut name for the callback
+    factory
+rules section (optional)
+    <$bbb> => a string starting with '$' : the shortcut name for the rule
+    factory
+formatters section (optional)
+    <$ccc> => a string starting with '$' : the shortcut name for the formatter
+    factory
+generator_monitors section (optional)
+    <gen_name> => the name of the monitor
+        <args> => the name of the argument
+        <value> => the value for the arguments
+function_monitors section (optional)
+    <func_name> => the name of the monitor
+        <args> => the name of the argument
+        <value> => the value for the arguments
+code_monitors section (optional)
+    <code_name> => the name of the monitor
+        <args> => the name of the argument
+        <value> => the value for the arguments
+<mod.function_name> => the full path to the function (will be loaded 
+dynamically)
+
+The monitor name have hierarchical structure alike the logging.
 """
 
 

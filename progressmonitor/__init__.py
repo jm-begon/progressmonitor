@@ -96,6 +96,10 @@ rules, the formatters and possibly the callbacks: in case of insufficient
 parameters for the corresponding factory, an other is called in it stead. This 
 mechanism is transparent to the user but may be logged (see Logging section).
 
+**Warning**: The fallback mechanism does not implement cycle dectection. In
+case of cycle, if none of the fallbacks are eligible, instead of breaking,
+the fallback mechanism will run on an infinite loop. 
+
 Reporting
 ---------
 A special *on_completion* hook is provided for reporting on functions. it 

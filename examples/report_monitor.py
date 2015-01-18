@@ -1,7 +1,9 @@
 # -*- coding: utf-8 -*-
 #! /usr/bin/env python
 """
-Basic example of rate progress bar
+This example illustrates the the :func:`report_with` functionality.
+An email is sent through the logging facility to notify the end user
+of the task completion along with some contextual information
 """
 
 from __future__ import generators
@@ -32,10 +34,6 @@ def _add(x, y):
 def writeln(messages):
     for message in messages:
         print message
-
-
-
-
 
 
 
@@ -136,35 +134,3 @@ if __name__ == '__main__':
 
     do_task(_mult, 2, 4, -1)
 
-    # print "Function monitoring example"
-    # print "---------------------------"
-    # do_task(1, 2, a=3)
-
-
-    # print
-
-    # print "Function monitoring from dict"
-    # print "-----------------------------"
-
-
-    # config = {
-    #     "version": 1,
-    #     "function_monitors": {
-    #         "f_monitor" : {
-    #             "callback_factory": "$stdout",
-    #             "format_str": "{$task} {$deblogger} {$elapsed} {$exception}",
-    #             "multiline": True,
-    #         }
-    #     }
-    # }
-
-    # dict_config(config)
-
-    # @monitor_with("f_monitor")
-    # def do_task2(t, *args, **kwargs):
-    #     """Task simulator"""
-    #     time.sleep(t)
-    #     return "done"
-
-
-    # print do_task2(4, 2, a=3)

@@ -48,3 +48,4 @@ def test_mcf():
     for i in xrange(len(msgs)):
         assert_equal(msgs[i], l1[i])
         assert_equal(msgs[i], l2[i])
+        

@@ -15,7 +15,6 @@ __date__ = "08 January 2015"
 
 
 import time
-from functools import partial
 
 from .rule import always_notif_rule_factory
 
@@ -262,6 +261,53 @@ class ProgressableTask(Task):
 
 
 
+class FunctionalTask(ProgressableTask):
+    """
+    ==============
+    FunctionalTask
+    ==============
+
+    A :class:`ProgressableTask` for monitoring functions.
+    """
+
+    def __init__(self, function, args, kwargs, name=None):
+        ProgressableTask.__init__(self, 1, name)
+        self._function = function
+        self._args = args
+        self._kwargs = kwargs
+        self._result = None
+        self._is_set = False
+
+    @property
+    def function(self):
+        return self._function
+
+    @property
+    def args(self):
+        return self._args
+
+    @property
+    def kwargs(self):
+        return self._kwargs
+
+    @property
+    def result(self):
+        if not self._is_set:
+            raise TypeError("Result not set yet.")
+        return self._result
+
+    @result.setter
+    def result(self, result):
+        if self._is_set:
+            raise TypeError("Result can only be set once.")
+        self._is_set = True
+        self._result = result
+
+    @property
+    def is_result_set(self):
+        return self._is_set
+
+
 
 
 
@@ -271,7 +317,7 @@ class ProgressableTask(Task):
 # ============================ PROGRESS MONITOR ============================ #
 
 def monitor_generator(generator, hook, task_name=None, 
-                     should_notify=always_notif_rule_factory()):
+                      should_notify=always_notif_rule_factory()):
 
     """
     Generator decorator for monitoring progress on another generator.
@@ -338,7 +384,6 @@ def monitor_generator(generator, hook, task_name=None,
 
 
 
-
 def monitor_function(function, hook, task_name=None, *args, **kwargs):
     """
     Monitor the given function. That is, submit two events to the hook:
@@ -371,30 +416,24 @@ def monitor_function(function, hook, task_name=None, *args, **kwargs):
     Exceptions are not swallowed
     """
     # Task will only last one call
-    task = ProgressableTask(1, task_name)
-    hook_kwargs = {
-        "monitored_func": function,
-        "monitored_args": args,
-        "monitored_kwargs": kwargs,
-        "monitored_result": None,
-    }
+    task = FunctionalTask(function, args, kwargs, task_name)
     try:
         #Initial hook call
-        hook(task, None, **hook_kwargs)
+        hook(task, None)
 
         result = function(*args, **kwargs)
-        hook_kwargs["monitored_result"] = result
+        task.result = result
         # Ends the task
         task.update(1)
         task.close(True)
         # Notify last progress
-        hook(task, None, **hook_kwargs)
+        hook(task, None)
 
     except Exception as excep:
         # Ends the task
         task.close(False)
         # Notify last progress
-        hook(task, excep, **hook_kwargs)
+        hook(task, excep)
         raise
 
     return result

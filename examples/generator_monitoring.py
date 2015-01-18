@@ -1,7 +1,9 @@
 # -*- coding: utf-8 -*-
 #! /usr/bin/env python
 """
-Custom progress bar configured from dictionary
+This example illustrates the iterator/generator monitoring throught
+the :func:`monitor_with` (and consequently the configuration facility)
+along with the fallback mechanism.
 """
 
 from __future__ import generators

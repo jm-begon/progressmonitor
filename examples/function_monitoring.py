@@ -1,7 +1,8 @@
 # -*- coding: utf-8 -*-
 #! /usr/bin/env python
 """
-Basic example of rate progress bar
+This example illustrates the function monitoring with :func:`monitor_this`
+and :func:`monitor_with`(and consequently the config facility).
 """
 
 from __future__ import generators
@@ -21,9 +22,9 @@ def get_hook():
     eth = elapsed_time_formatter_factory()
     cb = stdout_callback_factory()
 
-    def actual_hook(task, exception=None, **kwargs):
+    def actual_hook(task, exception=None):
         last_com = task.is_completed or exception is not None
-        cb(eth(task, exception, **kwargs), last_com)
+        cb(eth(task, exception), last_com)
 
     return actual_hook
 

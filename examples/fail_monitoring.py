@@ -1,7 +1,8 @@
 # -*- coding: utf-8 -*-
 #! /usr/bin/env python
 """
-Custom progress bar configured from dictionary
+This example illustrates the transparency of failure in case of missing 
+configuration with :func:`monitor_with`.
 """
 
 from __future__ import generators

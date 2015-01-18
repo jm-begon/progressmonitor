@@ -14,7 +14,7 @@ from progressmonitor.monitor import (ProgressableTask, monitor_generator,
                                      monitor_function, monitor_code, Task)
 
 
-def except_hook(task, exception=None, **kwargs):
+def except_hook(task, exception=None):
     if exception is not None:
         assert_equal(task.status == Task.ABORTED)
     if task.is_completed:
@@ -34,7 +34,7 @@ def test_update_task():
 def test_monitor_gen():
     length = 10
 
-    def hook_(task, exception=None, **kwargs):
+    def hook_(task, exception=None):
         assert_equal(exception, None)
         if task.progress == length:
             assert_equal(task.is_completed, True)
@@ -59,13 +59,13 @@ def test_monitor_fun():
     def rtn2():
         return 2
 
-    def hook_(task, exception=None, **kwargs):
+    def hook_(task, exception=None):
         assert_equal(exception, None)
-        assert_equal(kwargs["monitored_func"], rtn2)
+        assert_equal(task.function, rtn2)
         if task.progress == 0:
             assert_equal(task.is_completed, False)
         if task.progress == 1:
-            assert_equal(rtn2(), kwargs["monitored_result"])
+            assert_equal(rtn2(), task.result)
             assert_equal(task.is_completed, True)
 
     monitor_function(rtn2, hook_)
@@ -84,7 +84,7 @@ def test_monitor_fun_err():
 def test_monitor_code():
 
 
-    def hook_(task, exception=None, **kwargs):
+    def hook_(task, exception=None):
         assert_equal(exception, None)
         if task.progress == 0:
             assert_equal(task.is_completed, False)

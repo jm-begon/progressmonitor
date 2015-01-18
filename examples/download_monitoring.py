@@ -1,7 +1,8 @@
 # -*- coding: utf-8 -*-
 #! /usr/bin/env python
 """
-Basic example of rate progress bar
+This example illustrates the use of generator monitoring in the context of 
+file download with :func:`monitor_with`(and consequently the config facility).
 """
 
 from __future__ import generators

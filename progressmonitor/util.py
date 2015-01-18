@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 """
+Module :mod:`util` contains utiliatry methods.
 """
 
 
@@ -14,8 +15,23 @@ import logging
 
 
 def nb_notifs_from_rate(rate, length):
+    """
+    Compute the number of notifications from the rate
+
+    Parameters
+    ----------
+    rate : float 0 <= rate <= 1
+        The notification rate
+    length : int >= 0
+        The size of the iterator
+
+    Return
+    ------
+    The number of notifications corresponding to the given rate
+    """
     if length is None:
-        raise AttributeError("'nb_notifs' can only be determined if length is available")
+        raise AttributeError("'nb_notifs' can only be determined if length \
+                              is available")
     return int(math.ceil(1./rate))
 
 
@@ -108,6 +124,27 @@ def format_size(nb_bytes):
 
 
 def kw_intersect(function, dictionary, *args, **kwargs):
+    """
+    Computes the intersection between the function's parameters and
+    the given dictionary
+
+    Parameters
+    ----------
+    function : callable
+        The function to process
+    dictionary : dict
+        The dictionary to process
+    args : list
+        The list of positional arguments
+    kwargs : dict
+        The keyword arguments
+
+    Return
+    ------
+    intersect_dict : dict
+        The intersection between the function's parameters and the given 
+        dictionary
+    """
     try:
         prototype = getargspec(function)
     except TypeError:
@@ -129,6 +166,25 @@ def kw_intersect(function, dictionary, *args, **kwargs):
     return sub_dict
 
 def call_with(function, dictionary, *args, **kwargs):
+    """
+    Call the given function with the given dictionary with the additional
+    supplied arguments 
+
+    Parameters
+    ----------
+    function : callable
+        The function to process
+    dictionary : dict
+        The dictionary to process
+    args : list
+        The list of positional arguments
+    kwargs : dict
+        The keyword arguments
+
+    Return
+    ------
+    The result of the function with the given sefely inputs
+    """
     return function(*args, **kw_intersect(function, dictionary, *args, **kwargs))
 
 
@@ -138,6 +194,25 @@ def call_with(function, dictionary, *args, **kwargs):
 
 
 def fallback_embeder(func, *funcs):
+    """
+    Embed the given function for callbacks
+
+    Parameters
+    ----------
+    func : callable factory
+        The function to protect
+    funcs : iterator of callable factories
+        The safegard functions
+
+    Return
+    ------
+    The first function which can be applied
+
+    Logging
+    -------
+    Issue a logging warning on fallback on the logger 
+    name "progressmonitor.fallback"
+    """
     def apply_fallback(*args, **kwargs):
         try:
             return call_with(func, kwargs, *args)
@@ -154,6 +229,27 @@ def fallback_embeder(func, *funcs):
 
 
 def fallback(func1, *funcs):
+    """
+    fallback decorator
+
+    Parameters
+    ----------
+    func1 : callable
+        The first function to use in case of fallback
+    funcs : list of callable
+        THe sequence of function to use in case of fallback (func1 included)
+
+    Return
+    ------
+    func : callable
+        A function expected another function to embed in a fallback
+
+    Usage
+    -----
+    @fallback(f1)
+    def f2():
+        pass
+    """
     def fallback_wrapper(f):
         return fallback_embeder(f, *([func1]+list(funcs)))
     return fallback_wrapper
@@ -161,6 +257,19 @@ def fallback(func1, *funcs):
 
 
 class IdProxy(object):
+    """
+    =======
+    IdProxy
+    =======
+    A proxy for function and context manager.
+
+    >>> f = lambda x: x**2
+    >>> proxy = IdProxy()
+    >>> proxy(f) == f
+    True
+    >>> proxy(f)(2) == f(2)
+    True
+    """
 
     def __call__(self, f):
         return f

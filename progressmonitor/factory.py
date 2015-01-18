@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
 """
+Module :mod:`factory` contains a set of factories for building `monitor`
+with :func:`formated_hook_factory`
 """
 
 
@@ -12,7 +14,7 @@ import time
 from functools import partial
 from string import Formatter
 
-from .util import call_with, nb_notifs_from_rate 
+from .util import call_with 
 from .rule import rate_rule_factory
 from .monitor import monitor_generator, monitor_function, monitor_code
 from .hook import formated_hook_factory, report_hook_factory
@@ -30,6 +32,29 @@ def formated_monitoring(generator,
                         rule_factory=rate_rule_factory,
                         callback_factory=overwrite_callback_factory, 
                         **kwargs):
+    """
+    Build a generator monitor with a :func:`formated_hook_factory` 
+
+    Parameters
+    ----------
+    generator : iterator/generator
+        The generator to monitor
+    format_str : str (Default : "{$task} {$progressbar} {$time} {$exception}")
+        The formatting string
+    formatter_factories : dict (Default : __formatter_factories__)
+        A mapping placeholder - :func:`formatter_factory` for substitution
+        in the `format_str`
+    rule_factory : :func:`rule_factory` (Default : rate_rule_factory)
+        The rule to use
+    callback_factory : :func:`callback_factory`
+        The callback to use
+    kwargs : dict
+        Additionnal arguments for the factories
+
+    Return
+    ------
+    :func:`monitor_generator`
+    """
 
     # ---- Adding the format string ---- #
     kwargs["format_str"] = format_str
@@ -39,10 +64,6 @@ def formated_monitoring(generator,
     try:
         length = len(generator)
         kwargs["length"] = length
-        if "rate" in kwargs:
-            nb_notifs = nb_notifs_from_rate(kwargs["rate"], length)
-            kwargs["nb_notifs"] = nb_notifs
-
     except (AttributeError, TypeError):
         pass
 
@@ -71,6 +92,29 @@ def formated_monitoring(generator,
 
 
 def monitor_generator_factory(**kwargs):
+    """
+    Build a generator monitor with a :func:`formated_hook_factory` 
+
+    Parameters
+    ----------
+    kwargs : dict
+        Arguments:
+            format_str : str
+                The formatting string
+            formatter_factories : dict
+                A mapping placeholder - :func:`formatter_factory` 
+                for substitutionin the `format_str`
+            rule_factory : :func:`rule_factory`
+                The rule to use
+            callback_factory : :func:`callback_factory`
+                The callback to use
+            other factory arguments
+
+    Return
+    ------
+    A function which expects an iterator/generator to turn it into
+    a monitored generator
+    """
     def embed_gen(generator):
         return formated_monitoring(generator=generator, **kwargs)
     return embed_gen
@@ -85,6 +129,29 @@ def formated_function_monitoring(function,
                                  formatter_factories=__formatter_factories__,
                                  callback_factory=stdout_callback_factory, 
                                  **kwargs):
+    """
+    Build a function monitor with a :func:`formated_hook_factory` 
+
+    Parameters
+    ----------
+    function : callable
+        The function to monitor
+    format_str : str (Default : "{$task} {$progressbar} {$time} {$exception}")
+        The formatting string
+    formatter_factories : dict (Default : __formatter_factories__)
+        A mapping placeholder - :func:`formatter_factory` for substitution
+        in the `format_str`
+    rule_factory : :func:`rule_factory` (Default : rate_rule_factory)
+        The rule to use
+    callback_factory : :func:`callback_factory`
+        The callback to use
+    kwargs : dict
+        Additionnal arguments for the factories
+
+    Return
+    ------
+    :func:`monitor_function`
+    """
 
     # ---- Adding the format string ---- #
     kwargs["format_str"] = format_str
@@ -113,6 +180,29 @@ def formated_function_monitoring(function,
 
 
 def monitor_function_factory(**kwargs):
+    """
+    Build a function monitor with a :func:`formated_hook_factory` 
+
+    Parameters
+    ----------
+    kwargs : dict
+        Arguments:
+            format_str : str
+                The formatting string
+            formatter_factories : dict
+                A mapping placeholder - :func:`formatter_factory` 
+                for substitutionin the `format_str`
+            rule_factory : :func:`rule_factory`
+                The rule to use
+            callback_factory : :func:`callback_factory`
+                The callback to use
+            other factory arguments
+
+    Return
+    ------
+    A function which expects a function to turn it into
+    a monitored function
+    """
     def embed_func(function):
         return formated_function_monitoring(function=function, **kwargs)
     return embed_func
@@ -128,7 +218,29 @@ def report_monitor_factory(function,
                            subsec_precision=2,
                            **kwargs):
     
+    """
+    Build a function monitor with a :func:`report_hook_factory` 
 
+    Parameters
+    ----------
+    function : callable
+        The function to monitor
+    callback_factory : :func:`callback_factory` (Default : 
+    stdout_callback_factory)
+        The callback to use
+    format_result : callable (Default : str)
+        A function which transforms the result of the function into a string
+    format_timestamp : callable (Default : time.ctime)
+        A function which transforms the Unix epoch into a date+time string
+    subsec_precision : int (Default : 2)
+        The number of decimal digits for the second in the time formatting
+    kwargs : dict
+        Additionnal arguments for the factories
+
+    Return
+    ------
+    :func:`monitor_function`
+    """
     # ---- Building the callback ---- #
     callback = call_with(callback_factory, kwargs)
 
@@ -143,6 +255,31 @@ def report_monitor_factory(function,
     return partial(monitor_function, function, hook, task_name)
 
 def report_factory(**kwargs):
+    """
+    Build a function monitor with a :func:`report_hook_factory` 
+
+    Parameters
+    ----------
+    kwargs : dict
+        Arguments:
+            callback_factory : :func:`callback_factory`
+                The callback to use
+            format_result : callable
+                A function which transforms the result of the function into
+                 a string
+            format_timestamp : callable 
+                A function which transforms the Unix epoch into a date+time 
+                string
+            subsec_precision : int
+                The number of decimal digits for the second in the time 
+                formatting
+            Additionnal arguments for the factories
+
+    Return
+    ------
+    A function which expects a function to turn it into
+    a monitored function
+    """
     def embed_func(function):
         return report_monitor_factory(function=function, **kwargs)
     return embed_func
@@ -154,7 +291,30 @@ def formated_code_monitoring(format_str="{$elapsed} {$exception}",
                              formatter_factories=__formatter_factories__,
                              callback_factory=stdout_callback_factory, 
                              **kwargs):
+    """
+    Build a function monitor with a :func:`formatted_hook_factory` 
 
+    Parameters
+    ----------
+    function : callable
+        The function to monitor
+    format_str : str (Default : "{$elapsed} {$exception}")
+        The formatting string
+    formatter_factories : dict (Default : __formatter_factories__)
+        A mapping placeholder - :func:`formatter_factory` for substitution
+        in the `format_str`
+    rule_factory : :func:`rule_factory` (Default : rate_rule_factory)
+        The rule to use
+    callback_factory : :func:`callback_factory` (Default : 
+    stdout_callback_factory)
+        The callback to use
+    kwargs : dict
+        Additionnal arguments for the factories
+
+    Return
+    ------
+    :func:`code_function`
+    """
     # ---- Adding the format string ---- #
     kwargs["format_str"] = format_str
 

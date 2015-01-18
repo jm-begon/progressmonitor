@@ -1,6 +1,6 @@
 Progress monitor
 ================
-Progress monitor is a library for monitoring progress on time intensive tasks.
+Progress monitor is a Python library for monitoring progress on time intensive tasks.
 
 What, another progress bar toolbox ? Well, yes... and no! Progress monitor aims at giving flexible tools for monitoring progress with the least possible business code invasion.
 
