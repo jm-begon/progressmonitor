@@ -104,7 +104,7 @@ Running the test suite
 ----------------------
 
 To run the test suite, you need nosetests and the coverage modules.
-Run the test suite using::
+Run the test suite using:
 
     nosetests
 
