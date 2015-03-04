@@ -32,13 +32,12 @@ __date__ = "08 January 2015"
 
 import time
 import os
-import getpass
-import platform
 import math
 try:
     from threading import current_thread
 except ImportError:
     from threading import currentThread as current_thread
+    
 from .util import (format_duration, format_size, fallback)
 
 
@@ -80,7 +79,12 @@ def host_formatter_factory():
         -------
         foo@bar
         """
-        return getpass.getuser()+"@"+platform.node()
+        try:
+            import getpass
+            import platform
+            return getpass.getuser()+"@"+platform.node()
+        except:
+            return "n/a"
     return host_formatter
 
 def threadname_formatter_factory(refresh=False):
@@ -264,7 +268,7 @@ def progressbar_formatter_factory(length, nb_steps=10, fill="=", blank=".",
         -------
         [========>..] 86.27%
         """
-        if task.is_completed:
+        if task.is_completed or length == 0:
             # fill the whole bar
             fill_ = fill * nb_steps
             blank_ = ""

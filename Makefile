@@ -1,4 +1,7 @@
 
+SRCDIR=progressmonitor
+DOCDIR=doc
+
 all: clean in test
 
 clean:
@@ -13,13 +16,13 @@ inplace:
 	python setup.py build_ext --inplace
 
 doc: inplace
-	$(MAKE) -C doc html
+	$(MAKE) -C "$(DOCDIR)" html
 
 clean-doc:
 	rm -rf doc/_*
 
 test:
-	nosetests progressmonitor -sv --with-coverage
+	nosetests "$(SRCDIR)" -sv --with-coverage
 
 install:inplace
 	python setup.py install
