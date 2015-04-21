@@ -32,7 +32,7 @@ def writeln(messages):
 
 
 if __name__ == '__main__':
-    length = 102
+    length = 0
 
     rate = 0.1
     span=10

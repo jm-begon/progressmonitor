@@ -219,7 +219,7 @@ def exception_formatter_factory(subsec_precision=2):
         msg = ""
         if exception is not None:
             duration = format_duration(task.duration, subsec_precision)
-            msg = "Aborted after "+duration+" (Reason: "+exception.message+")"
+            msg = "Aborted after "+str(duration)+" (Reason: "+str(exception.message)+")"
         return msg
     return exception_formatter
 

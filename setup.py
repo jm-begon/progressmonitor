@@ -21,7 +21,7 @@ DESCRIPTION = 'Tools for monitoring progresses'
 with open('README.md') as f:
     LONG_DESCRIPTION = f.read()
 CLASSIFIERS = [
-    'Development Status :: 2 - Pre-Alpha',
+    'Development Status :: 5 - Production/Stable',
     'Environment :: Console',
     'Intended Audience :: Developers',
     'Intended Audience :: Science/Research',
@@ -48,4 +48,4 @@ if __name__ == '__main__':
           classifiers=CLASSIFIERS,
           platforms='any',
           packages=['progressmonitor', 'progressmonitor.test'])
-    
+
