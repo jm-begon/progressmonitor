@@ -8,19 +8,19 @@ It aims at giving flexible tools for monitoring progress with the least
 possible buiseness code invasion.
 
 It features three main functionalities (:mod:`monitor`)
-    1. :func:`monitor_generator`: a highly configurable, decorator for 
-    `generator`s which allows to monitor progresses of iterative tasks. 
+    1. :func:`monitor_generator`: a highly configurable, decorator for
+    `generator`s which allows to monitor progresses of iterative tasks.
     Operating under-the-hood, the impact on the business code is minimal.
     2. :func:`monitor_function`: a configurable decorator for functions.
-    The monitoring is done on the whole function and the impact on the 
+    The monitoring is done on the whole function and the impact on the
     business can be as small as using the Python decorator facility.
-    3. :func:`monitor_code` (or :class:`CodeMonitor`): a configurable 
+    3. :func:`monitor_code` (or :class:`CodeMonitor`): a configurable
     context manager for monitoring a block of code.
 
-Aside from that module, the remaining of the code is dedicated to 
+Aside from that module, the remaining of the code is dedicated to
     - predifined *configuring* functions for the monitorings (notification
     rules, hooks, callbacks, fallback mechanism, etc.).
-    - helper code for configuring *faster* and with even *less monitoring code 
+    - helper code for configuring *faster* and with even *less monitoring code
     intrusion* in buiseness code (factories, configuration).
 
 Main components
@@ -28,13 +28,13 @@ Main components
 
 Notifcation rules
 -----------------
-The notification rules concerned the :func:`monitor_generator` for 
+The notification rules concerned the :func:`monitor_generator` for
 iterators/generators. It indicates when (i.e. at which iterations) a event must
 be sent to the listeners.
 
 For function/code monitoring, only two events are issued:
     1. At the task's creation
-    2. At the completion of the function/piece of code or if an exception 
+    2. At the completion of the function/piece of code or if an exception
     occured
 
 See the :mod:`rule` module for more information.
@@ -43,10 +43,10 @@ Hooks
 -----
 Hooks concerned all types of monitoring. It is the mechanism through which
 listeners register their interest to receive monitoring events. Each kind of
-monitor only provides room for one hook. However, a 
+monitor only provides room for one hook. However, a
 :class:`ProgressListener` is provided in order to multiplex events.
 
-Hooks are assumed to be provided through factories so as to be stateful, 
+Hooks are assumed to be provided through factories so as to be stateful,
 parametrizable if need be and provide an homogenous building mechanism.
 
 The hooks provided by this library are mainly using callback functions to
@@ -66,7 +66,7 @@ with placeholder. A system of shortcuts is implemeted:
     - So that external formatters can be dynamically loaded in conjunction
     with the configuration scheme.
 
-Formatters are assumed to be provided through factories so as to be stateful, 
+Formatters are assumed to be provided through factories so as to be stateful,
 parametrizable if need be and provide an homogenous building mechanism.
 
 These formatters are usually used by hooks which transfert their output to
@@ -92,17 +92,17 @@ on the formatting mechanism.
 Fallbacks
 ---------
 A fallback mechanism is provided in the form of decorator for the notification
-rules, the formatters and possibly the callbacks: in case of insufficient 
-parameters for the corresponding factory, an other is called in it stead. This 
+rules, the formatters and possibly the callbacks: in case of insufficient
+parameters for the corresponding factory, an other is called in it stead. This
 mechanism is transparent to the user but may be logged (see Logging section).
 
 **Warning**: The fallback mechanism does not implement cycle dectection. In
 case of cycle, if none of the fallbacks are eligible, instead of breaking,
-the fallback mechanism will run on an infinite loop. 
+the fallback mechanism will run on an infinite loop.
 
 Reporting
 ---------
-A special *on_completion* hook is provided for reporting on functions. it 
+A special *on_completion* hook is provided for reporting on functions. it
 transferts a multiline string to a given callback function. This is typically
 useful to get an email notification with some details when the main task is
 done.
@@ -122,10 +122,10 @@ Configuration can be conducted either from a dictionary :func:`dict_config` or
 from a file :func:`file_config` holding directly the dictionary.
 
 Configuration rely on :func:`formated_hook`, meaning that it is reserved
-for format-callback hooks. 
+for format-callback hooks.
 
 It is possible to use formatters, callbacks and notification rules from outside
-of this library. 
+of this library.
 
 Configuration may be done several times but overlaps will be overwritten,
 keeping the most recent one. This is also true with the preconfigured
@@ -139,8 +139,8 @@ Two shortcuts are also provided:
     - :func:`monitor_with` for generators, functions and pieces of code
     - :func:`report_with` for reports
 Note that with :func:`monitor_with` no default configuration can be provided
-if the monitor does not (nor any ancestor) exist. Consequently a warning is 
-issued (see Logging section) but the business code is otherwise left untouched 
+if the monitor does not (nor any ancestor) exist. Consequently a warning is
+issued (see Logging section) but the business code is otherwise left untouched
 (no monitoring is performed)
 
 
@@ -149,7 +149,7 @@ See :mod:`config` for more information.
 
 Overhead
 ========
-Monitoring progress imposes overhead on the buiseness code (computation and 
+Monitoring progress imposes overhead on the buiseness code (computation and
 indirection). However, this overhead should be negligeable compare to the time
 required by the monitored task.
 
@@ -161,7 +161,7 @@ The progress monitor library resorts on logging for:
 
 By default, the logging is turned off by setting a logging.NullHandler
 as handler for the library's root logger ('progressmonitor'). To enable those
-messages, another handler must be set for the library's root logger. 
+messages, another handler must be set for the library's root logger.
 """
 
 __author__ = "Begon Jean-Michel <jm.begon@gmail.com>"
@@ -170,15 +170,15 @@ __version__ = '1.0'
 __date__ = "08 January 2015"
 
 
-from .monitor import (monitor_generator, monitor_function, monitor_code, 
+from .monitor import (monitor_generator, monitor_function, monitor_code,
                       CodeMonitor)
 
 from .rule import (always_notif_rule_factory, periodic_rule_factory,
                    span_rule_factory, rate_rule_factory)
 
 from .formatter import (taskname_formatter_factory, host_formatter_factory,
-                        threadname_formatter_factory, 
-                        processid_formatter_factory, 
+                        threadname_formatter_factory,
+                        processid_formatter_factory,
                         nb_iterations_formatter_factory,
                         exception_formatter_factory,
                         progressbar_formatter_factory,
@@ -188,35 +188,35 @@ from .formatter import (taskname_formatter_factory, host_formatter_factory,
                         chunk_formatter_factory,
                         string_formatter_factory)
 from .hook import (ProgressListener, callback_hook_factory, set_callback,
-                   formated_hook_factory, report_hook_factory)
+                   formated_hook_factory, report_hook_factory, default_hook)
 
-from .callback import (stdout_callback_factory, stderr_callback_factory, 
+from .callback import (stdout_callback_factory, stderr_callback_factory,
                        overwrite_callback_factory, logging_callback_factory,
                        store_till_end_callback_factory, multi_callback_factory)
 
-from .factory import (monitor_generator_factory, report_factory, 
+from .factory import (monitor_generator_factory, report_factory,
                       formated_code_monitoring)
 
 from .util import (format_duration, format_size, call_with, fallback)
 
 
-from .config import (get_config, get_monitor, parse_dict_config, 
+from .config import (get_config, get_monitor, parse_dict_config,
                      parse_file_config)
 
 __all__ = ["monitor", "monitor_this", "code_monitor", "report_this",
            "monitor_with", "report_with", "dict_config", "file_config",
-           "monitor_generator", "monitor_function", "monitor_this", 
-           "monitor_code", "CodeMonitor", "always_notif_rule_factory", 
+           "monitor_generator", "monitor_function", "monitor_this",
+           "monitor_code", "CodeMonitor", "always_notif_rule_factory",
            "periodic_rule_factory", "span_rule_factory", "rate_rule_factory",
            "taskname_formatter_factory", "host_formatter_factory",
-           "threadname_formatter_factory", "processid_formatter_factory", 
+           "threadname_formatter_factory", "processid_formatter_factory",
            "nb_iterations_formatter_factory", "exception_formatter_factory",
            "progressbar_formatter_factory", "completion_formatter_factory",
            "elapsed_time_formatter_factory", "remaining_time_formatter_factory",
-           "chunk_formatter_factory", "string_formatter_factory", 
+           "chunk_formatter_factory", "string_formatter_factory",
            "ProgressListener", "callback_hook_factory", "set_callback",
-           "formated_hook_factory", "report_hook_factory", 
-           "stdout_callback_factory", "stderr_callback_factory", 
+           "formated_hook_factory", "report_hook_factory",
+           "stdout_callback_factory", "stderr_callback_factory",
            "overwrite_callback_factory", "logging_callback_factory",
            "store_till_end_callback_factory", "multi_callback_factory",
            "format_duration", "format_size", "call_with", "fallback"]
@@ -239,12 +239,12 @@ def monitor(**kwargs):
 
     Return
     ------
-    
+
     """
     return monitor_generator_factory(**kwargs)
 
 
-def monitor_this(hook, task_name=None):
+def monitor_this(hook=default_hook(), task_name=None):
     """
     Decorator for :func:`monitor_function`
 
@@ -258,7 +258,7 @@ def monitor_this(hook, task_name=None):
 
     Yes, it's that easy !
     """
-    
+
     def apply_monitoring(function):
         return partial(monitor_function, function, hook, task_name)
     return apply_monitoring

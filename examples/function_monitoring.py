@@ -14,22 +14,13 @@ __version__ = '1.0'
 import time
 
 from progressmonitor import monitor_this, dict_config, monitor_with
-from progressmonitor.formatter import elapsed_time_formatter_factory
-from progressmonitor.callback import stdout_callback_factory
+from progressmonitor.hook import default_hook
 
 
-def get_hook():
-    eth = elapsed_time_formatter_factory()
-    cb = stdout_callback_factory()
-
-    def actual_hook(task, exception=None):
-        last_com = task.is_completed or exception is not None
-        cb(eth(task, exception), last_com)
-
-    return actual_hook
 
 
-@monitor_this(hook=get_hook())
+
+@monitor_this(hook=default_hook())
 def do_task(t, *args, **kwargs):
     """Task simulator"""
     print "\ttime:", t

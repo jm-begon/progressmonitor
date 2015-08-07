@@ -11,7 +11,7 @@ Module :mod:`hook` contains hook functions. They have the form
     ------
     None
 
-Hooks are assumed to be provided through factories so as to be stateful, 
+Hooks are assumed to be provided through factories so as to be stateful,
 parametrizable if need be and provide an homogenous building mechanism.
 
 Hooks rely on callbacks which are of the form
@@ -29,19 +29,13 @@ __date__ = "08 January 2015"
 
 
 import time
-import os
-import getpass
-import platform
-try:
-    from threading import current_thread
-except ImportError:
-    from threading import currentThread as current_thread
-
 from .util import (format_duration)
-from .formatter import (string_formatter_factory, host_formatter_factory, 
-                        processid_formatter_factory, 
-                        threadname_formatter_factory, 
-                        taskname_formatter_factory)
+from .formatter import (string_formatter_factory, host_formatter_factory,
+                        processid_formatter_factory,
+                        threadname_formatter_factory,
+                        taskname_formatter_factory,
+                        elapsed_time_formatter_factory)
+from .callback import stdout_callback_factory
 
 
 
@@ -86,7 +80,7 @@ class ProgressListener(object):
     def __call__(self, task, exception=None):
         """
         hook function
-        
+
         Parameters
         ----------
         task : :class:`Task`
@@ -109,7 +103,7 @@ def callback_hook_factory(callback, formatter):
     Parameters
     ----------
     callback : callable
-        A :func:`callback` function to dispose of the string yielded by the 
+        A :func:`callback` function to dispose of the string yielded by the
         formatter
     formatter : callable
         A :func:`formatter` to treat
@@ -157,7 +151,7 @@ def set_callback(callback):
             last_com = task.is_completed or exception is not None
             message = string_hook(task, exception)
             callback(message, last_com)
-            return message 
+            return message
         return apply_hook
     return callback_hook
 
@@ -199,7 +193,7 @@ def formated_hook_factory(callback, format_str, format_mapper):
 
 # ------------------------ for functions ------------------------------- #
 
-def report_hook_factory(callback, format_result=str, 
+def report_hook_factory(callback, format_result=str,
                         format_timestamp=time.ctime,
                         subsec_precision=2):
     """
@@ -283,7 +277,7 @@ Duration : {_$duration}
             func = task.function
             fillin["_$fname"] = func
             fillin["_$doc"] = "n/a"
-            if hasattr(func, "__doc__"): 
+            if hasattr(func, "__doc__"):
                 fillin["_$doc"] = func.__doc__
             fillin["_$fargs"] = task.args
             fillin["_$fkwargs"] = task.kwargs
@@ -299,7 +293,7 @@ Duration : {_$duration}
 
             # Fill in time
             fillin["_$start"] = format_timestamp(task.timestamp)
-            fillin["_$duration"] = format_duration(task.duration, 
+            fillin["_$duration"] = format_duration(task.duration,
                                                    subsec_precision)
 
             callback(layout.format(**fillin))
@@ -308,4 +302,14 @@ Duration : {_$duration}
 
 
 
+#----------------------- A default hook for most purposes ---------------------#
 
+def default_hook():
+    formater = elapsed_time_formatter_factory()
+    callback = stdout_callback_factory()
+
+    def actual_hook(task, exception=None):
+        last_com = task.is_completed or exception is not None
+        callback(formater(task, exception), last_com)
+
+    return actual_hook
